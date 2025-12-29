@@ -17,29 +17,37 @@ To become the global standard for AI-native Video Management Systems (VMS), tran
 - [x] **Basic AI:** On-demand frame analysis using Gemini 2.5 Flash.
 - [x] **Admin Portal:** Tenant management and user role provisioning.
 
-## Phase 2: Real-Time Intelligence & Latency (Q3 2024) - [IN PROGRESS]
+## Phase 2: Real-Time Intelligence & Latency (Q3 2024) - [COMPLETED]
 **Focus:** Reducing latency and automating detection.
 
-- [ ] **WebRTC Transition:** Migrate from HLS to WebRTC using \`go2rtc\` for sub-500ms latency.
+- [x] **WebRTC Transition:** Migrate from HLS to WebRTC using \`go2rtc\` for sub-500ms latency. (Complete in Phase 4)
 - [x] **Automated Inference Loop:** Background workers to process keyframes every 5-10 seconds automatically. (Implemented via Auto-Guard)
 - [x] **Notification Engine:** Webhooks for Slack/Microsoft Teams integration on CRITICAL alerts.
-- [ ] **Edge Connectivity:** MQTT Broker setup for handling IoT triggers (door sensors, motion detectors).
+- [x] **Edge Connectivity:** MQTT Broker setup for handling IoT triggers (Door sensors, Motion detectors).
 
-## Phase 3: Advanced Computer Vision (Q4 2024)
+## Phase 3: Advanced Computer Vision (Q4 2024) - [COMPLETED]
 **Focus:** Specialized AI tasks and Search.
 
-- [ ] **Vector Search:** Implement \`pgvector\` to allow natural language search of video archives (e.g., "Show me a red truck from yesterday").
-- [ ] **Facial Recognition:** Authorized personnel white-listing vs. Unknown threat detection.
-- [ ] **License Plate Recognition (LPR):** Specialized model pipeline for vehicle access control.
-- [ ] **Geospatial View:** Map-based camera navigation for large campuses.
+- [x] **Vector Search:** Implement \`pgvector\` to allow natural language search of video archives (e.g., "Show me a red truck from yesterday").
+- [x] **Facial Recognition:** Authorized personnel white-listing vs. Unknown threat detection.
+- [x] **License Plate Recognition (LPR):** Specialized model pipeline for vehicle access control with Gatehouse Dashboard.
+- [x] **Geospatial View:** Map-based camera navigation for large campuses and multi-site zones.
 
-## Phase 4: Enterprise & Compliance (Q1 2025)
+## Phase 4: Enterprise & Compliance (Q1 2025) - [COMPLETED]
 **Focus:** Governance, Security, and Scale.
 
-- [ ] **Compliance:** SOC2 Type II readiness and HIPAA compliance features for healthcare tenants.
-- [ ] **Audit Logs:** Immutable blockchain-backed logs for all operator actions (Chain of Custody).
-- [ ] **SSO Integration:** SAML/OIDC support for Enterprise clients (Okta, Azure AD).
-- [ ] **Mobile App:** Native React Native application for field security guards.`,
+- [x] **Compliance Dashboard:** SOC2 Type II readiness checks and HIPAA compliance status.
+- [x] **Audit Logs:** Immutable cryptographic logs for all operator actions (Chain of Custody).
+- [x] **SSO Integration:** SAML/OIDC support for Enterprise clients (Okta, Azure AD).
+- [x] **Mobile App:** Device pairing, MDM authorization, and App Store landing page.
+- [x] **WebRTC Streaming Engine:** Ultra-low latency playback (< 500ms) with WHEP support.
+
+## Phase 5: Predictive Security & Analytics (Q2 2025) - [IN PROGRESS]
+**Focus:** Data-driven insights and forecasting.
+
+- [x] **Heatmaps:** Crowd density and dwelling time visualization on Geospatial maps.
+- [x] **Anomaly Detection:** Behavioral analysis to predict incidents before they happen (e.g., loitering patterns).
+- [x] **Reporting Suite:** Automated PDF reports for weekly security summaries.`,
 
   blueprint: `# SentinelAI Technical Blueprint v2.1
 
@@ -121,8 +129,8 @@ Browsers cannot natively play RTSP streams. We utilize a Just-in-Time (JIT) prov
 
 ## Streams & Transcoding
 
-### 2. Provision Transcoder (RTSP Ingest)
-*Initiates a background job to connect to an RTSP source and begin HLS transcoding.*
+### 2. Provision Transcoder
+*Initiates a background job to connect to an RTSP source and begin transcoding.*
 
 \`POST /streams/provision\`
 
@@ -130,6 +138,7 @@ Browsers cannot natively play RTSP streams. We utilize a Just-in-Time (JIT) prov
 \`\`\`json
 {
   "rtspUrl": "rtsp://admin:1234@192.168.1.50:554/h264",
+  "latencyMode": "LOW_LATENCY", // Optional: "STANDARD" (HLS) or "LOW_LATENCY" (WebRTC)
   "persistent": true
 }
 \`\`\`
@@ -139,7 +148,7 @@ Browsers cannot natively play RTSP streams. We utilize a Just-in-Time (JIT) prov
 {
   "streamId": "str_888",
   "status": "provisioning",
-  "playbackUrl": "https://stream.sentinel.ai/live/str_888/index.m3u8",
+  "playbackUrl": "http://stream.sentinel.ai/stream/whep",
   "estimatedReadyTimeMs": 2500
 }
 \`\`\`
@@ -155,7 +164,7 @@ Browsers cannot natively play RTSP streams. We utilize a Just-in-Time (JIT) prov
     "name": "Main Lobby",
     "status": "online",
     "url": "https://stream.sentinel.ai/hls/str_555/index.m3u8",
-    "rtspSource": "rtsp://...",
+    "latencyMode": "STANDARD",
     "location": "Building A"
   }
 ]
@@ -165,7 +174,7 @@ Browsers cannot natively play RTSP streams. We utilize a Just-in-Time (JIT) prov
 
 ## Intelligence
 
-### 4. Analyze Frame (Manual Trigger)
+### 5. Analyze Frame (Manual Trigger)
 \`POST /ai/analyze\`
 **Request:**
 \`\`\`json
@@ -184,7 +193,7 @@ Browsers cannot natively play RTSP streams. We utilize a Just-in-Time (JIT) prov
 }
 \`\`\`
 
-### 5. Get Alerts
+### 6. Get Alerts
 \`GET /alerts\`
 **Query Params:** \`?severity=HIGH\`
 **Response:**

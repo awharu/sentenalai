@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
-import { Tenant, PlanTier } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Tenant, PlanTier, IdentityProvider } from '../types';
 import { Button } from '../components/Button';
-import { Plus, Users, Server, Activity, Bell, Webhook, CheckCircle, Trash2, LayoutGrid } from 'lucide-react';
+import { Plus, Users, Server, Activity, Bell, Webhook, CheckCircle, Trash2, LayoutGrid, Shield, FileText, Lock, Globe, Edit2 } from 'lucide-react';
+import { getIdPs, saveIdP, deleteIdP } from '../services/ssoService';
+import { logAction } from '../services/auditService';
+import { SSOConfigModal } from '../components/SSOConfigModal';
 
 interface NotificationChannel {
     id: string;
@@ -12,7 +15,12 @@ interface NotificationChannel {
 }
 
 export default function AdminPanel() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'integrations'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'integrations' | 'compliance'>('overview');
+
+  // SSO State
+  const [idps, setIdps] = useState<IdentityProvider[]>([]);
+  const [showSSOModal, setShowSSOModal] = useState(false);
+  const [editingIdP, setEditingIdP] = useState<Partial<IdentityProvider> | undefined>(undefined);
 
   // Mock Data for Tenants
   const [tenants, setTenants] = useState<Tenant[]>([
@@ -30,6 +38,17 @@ export default function AdminPanel() {
   const [newChannel, setNewChannel] = useState<Partial<NotificationChannel>>({ type: 'SLACK', active: true });
   const [showAddChannel, setShowAddChannel] = useState(false);
 
+  useEffect(() => {
+      if (activeTab === 'compliance') {
+          loadIdPs();
+      }
+  }, [activeTab]);
+
+  const loadIdPs = async () => {
+      const data = await getIdPs();
+      setIdps(data);
+  };
+
   const handleAddChannel = (e: React.FormEvent) => {
       e.preventDefault();
       if (newChannel.name && newChannel.url) {
@@ -45,6 +64,20 @@ export default function AdminPanel() {
 
   const toggleChannel = (id: string) => {
       setChannels(prev => prev.map(c => c.id === id ? { ...c, active: !c.active } : c));
+  };
+
+  const handleSaveIdP = async (idp: IdentityProvider) => {
+      await saveIdP(idp);
+      await logAction('CONFIG_SSO', `IdP: ${idp.name}`, `Type: ${idp.type}, Status: ${idp.status}`);
+      loadIdPs();
+  };
+
+  const handleDeleteIdP = async (id: string) => {
+      if (confirm("Are you sure? This will prevent users from logging in via this provider.")) {
+          await deleteIdP(id);
+          await logAction('CONFIG_SSO', 'Deleted IdP', `ID: ${id}`);
+          loadIdPs();
+      }
   };
 
   return (
@@ -70,6 +103,13 @@ export default function AdminPanel() {
             >
                 <Webhook size={16} />
                 Integrations
+            </button>
+            <button 
+                onClick={() => setActiveTab('compliance')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'compliance' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+            >
+                <Shield size={16} />
+                Compliance
             </button>
         </div>
       </div>
@@ -298,6 +338,151 @@ export default function AdminPanel() {
               </div>
           </div>
       )}
+
+      {activeTab === 'compliance' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+             <div className="space-y-6">
+                 {/* SOC2 Card */}
+                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                     <div className="flex items-center gap-3 mb-6">
+                         <div className="p-2 bg-green-900/30 rounded-lg text-green-500">
+                             <Shield size={24} />
+                         </div>
+                         <div>
+                             <h3 className="font-bold text-white">SOC 2 Type II Readiness</h3>
+                             <p className="text-xs text-slate-400">Security Control Status</p>
+                         </div>
+                     </div>
+
+                     <div className="space-y-4">
+                         <div className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg border border-slate-800">
+                             <div className="flex items-center gap-3">
+                                 <Lock size={16} className="text-blue-500" />
+                                 <div>
+                                     <p className="text-sm font-medium text-white">Encryption at Rest</p>
+                                     <p className="text-xs text-slate-500">AES-256 Volume Encryption</p>
+                                 </div>
+                             </div>
+                             <span className="text-xs font-bold text-green-400 bg-green-900/20 px-2 py-1 rounded border border-green-900/30">ACTIVE</span>
+                         </div>
+                         <div className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg border border-slate-800">
+                             <div className="flex items-center gap-3">
+                                 <Globe size={16} className="text-purple-500" />
+                                 <div>
+                                     <p className="text-sm font-medium text-white">Encryption in Transit</p>
+                                     <p className="text-xs text-slate-500">TLS 1.3 / HTTPS Enforced</p>
+                                 </div>
+                             </div>
+                             <span className="text-xs font-bold text-green-400 bg-green-900/20 px-2 py-1 rounded border border-green-900/30">ACTIVE</span>
+                         </div>
+                         <div className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg border border-slate-800">
+                             <div className="flex items-center gap-3">
+                                 <FileText size={16} className="text-orange-500" />
+                                 <div>
+                                     <p className="text-sm font-medium text-white">Audit Logging</p>
+                                     <p className="text-xs text-slate-500">Immutable Chain of Custody</p>
+                                 </div>
+                             </div>
+                             <span className="text-xs font-bold text-green-400 bg-green-900/20 px-2 py-1 rounded border border-green-900/30">ACTIVE</span>
+                         </div>
+                     </div>
+                     
+                     <div className="mt-6 pt-4 border-t border-slate-800">
+                         <Button className="w-full flex justify-center items-center gap-2" variant="outline">
+                             <FileText size={16} />
+                             Generate Compliance Report (PDF)
+                         </Button>
+                     </div>
+                 </div>
+
+                 {/* Retention Card */}
+                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                    <h3 className="font-bold text-white mb-4">Data Retention Policy</h3>
+                    <div className="space-y-4">
+                        <div>
+                             <div className="flex justify-between text-sm text-slate-300 mb-1">
+                                 <span>Video Retention</span>
+                                 <span className="font-bold">30 Days</span>
+                             </div>
+                             <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                                 <div className="h-full w-1/3 bg-blue-600"></div>
+                             </div>
+                        </div>
+                        <div>
+                             <div className="flex justify-between text-sm text-slate-300 mb-1">
+                                 <span>Audit Logs</span>
+                                 <span className="font-bold">365 Days</span>
+                             </div>
+                             <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                                 <div className="h-full w-full bg-green-600"></div>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+             </div>
+
+             <div className="space-y-6">
+                {/* Enterprise SSO Card */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col h-full">
+                    <div className="p-6 border-b border-slate-800 flex justify-between items-start">
+                        <div>
+                            <h3 className="font-bold text-white mb-1">Enterprise SSO</h3>
+                            <p className="text-sm text-slate-400">
+                                Connect your corporate identity provider (Okta, Azure AD).
+                            </p>
+                        </div>
+                        <Button size="sm" onClick={() => { setEditingIdP(undefined); setShowSSOModal(true); }}>
+                            <Plus size={16} className="mr-2 inline" /> Add Provider
+                        </Button>
+                    </div>
+                    
+                    <div className="flex-1 p-6 overflow-y-auto min-h-[300px]">
+                        {idps.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                                <Shield size={48} className="mb-4 opacity-50" />
+                                <p>No Identity Providers configured.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {idps.map(idp => (
+                                    <div key={idp.id} className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex items-center justify-between group">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded bg-slate-700 flex items-center justify-center text-slate-300">
+                                                {idp.type === 'OIDC' ? <Globe size={20} /> : <Lock size={20} />}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-white text-sm">{idp.name}</h4>
+                                                <div className="flex items-center gap-2 text-xs text-slate-400">
+                                                    <span className="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">{idp.type}</span>
+                                                    <span className="truncate max-w-[150px]">{idp.issuerUrl}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${idp.status === 'ACTIVE' ? 'bg-green-900/30 text-green-400' : 'bg-slate-700 text-slate-400'}`}>
+                                                {idp.status}
+                                            </span>
+                                            <button onClick={() => handleDeleteIdP(idp.id)} className="text-slate-500 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+             </div>
+          </div>
+      )}
+
+      {/* SSO Config Modal */}
+      <SSOConfigModal 
+        isOpen={showSSOModal} 
+        onClose={() => setShowSSOModal(false)}
+        onSave={handleSaveIdP}
+        initialData={editingIdP}
+      />
     </div>
   );
 }

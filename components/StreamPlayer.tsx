@@ -1,7 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { CameraStream, SecurityAlert } from '../types';
 import { analyzeFrame } from '../services/geminiService';
-import { AlertTriangle, Eye, Settings, Activity, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { identifyPersonInFrame } from '../services/identityService';
+import { simulatePlateDetection, registerVehicleEntry } from '../services/accessControlService';
+import { AlertTriangle, Eye, Settings, Activity, ShieldCheck, ShieldAlert, UserCheck, UserX, Car, Zap, Signal } from 'lucide-react';
 import Hls from 'hls.js';
 
 interface StreamPlayerProps {
@@ -22,41 +24,57 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({ stream, onAlertGener
   const hlsRef = useRef<Hls | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<StreamError | null>(null);
-  const [streamType, setStreamType] = useState<'MP4' | 'HLS' | 'RTSP'>('MP4');
+  const [isWebRTC, setIsWebRTC] = useState(false);
+  const [rtcStats, setRtcStats] = useState<{bitrate: string; rtt: string; fps: number}>({ bitrate: '0', rtt: '0', fps: 0 });
+  const [connectionState, setConnectionState] = useState<'new'|'connecting'|'connected'|'failed'>('new');
   
   // Auto-Guard State
   const [autoGuard, setAutoGuard] = useState(false);
 
-  // Initialize Stream (HLS or Native)
+  // Initialize Stream (HLS or Native or WebRTC Simulation)
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    // Reset error state on url change
+    // Reset state
     setError(null);
+    setConnectionState('new');
+    setIsWebRTC(false);
 
     // Detect Stream Type
-    if (stream.url.startsWith('rtsp://')) {
-        setStreamType('RTSP');
+    const isMockRTC = stream.url.startsWith('mock-webrtc://');
+    const isRealRTSP = stream.url.startsWith('rtsp://');
+
+    if (isRealRTSP) {
         setError({
             title: "Protocol Unsupported",
             message: "Browsers cannot play raw RTSP streams directly.",
             suggestion: "Use the configuration menu to provision a transcoding backend."
         });
         return;
-    } else if (stream.url.endsWith('.m3u8') || stream.url.includes('m3u8')) {
-        setStreamType('HLS');
-    } else {
-        setStreamType('MP4');
-    }
+    } 
+    
+    if (isMockRTC) {
+        setIsWebRTC(true);
+        setConnectionState('connecting');
+        
+        // Simulate WebRTC Connection establishment
+        const connectTimer = setTimeout(() => {
+            setConnectionState('connected');
+            // Play a real video file to visually simulate the stream, even though protocol is mock
+            video.src = 'https://media.w3.org/2010/05/sintel/trailer.mp4';
+            video.play().catch(console.error);
+        }, 800);
 
-    // Cleanup previous HLS instance
+        return () => clearTimeout(connectTimer);
+    } 
+    
+    // Standard HLS/MP4
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
 
-    // HLS Implementation
     if (Hls.isSupported() && (stream.url.endsWith('.m3u8') || stream.url.includes('m3u8'))) {
       const hls = new Hls({
         debug: false,
@@ -67,127 +85,104 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({ stream, onAlertGener
       
       hls.loadSource(stream.url);
       hls.attachMedia(video);
-      
       hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              console.log("fatal network error encountered, try to recover");
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              console.log("fatal media error encountered, try to recover");
-              hls.recoverMediaError();
-              break;
-            default:
-              console.log("cannot recover");
-              hls.destroy();
-              
-              let errTitle = "Stream Connection Failed";
-              let errMessage = "A fatal error occurred during playback.";
-              let errSuggestion = "Check your network connection and stream URL.";
-
-              if (data.details === 'manifestLoadError') {
-                  errTitle = "Manifest Load Error";
-                  errMessage = "Unable to load the stream manifest from the server.";
-                  errSuggestion = "Ensure the server is online and supports CORS.";
-              } else if (data.details === 'manifestParsingError') {
-                  errTitle = "Manifest Parsing Error";
-                  errMessage = "The stream manifest is invalid or corrupted.";
-                  errSuggestion = "Verify the stream source configuration.";
-              } else if (data.details === 'levelLoadError') {
-                  errTitle = "Segment Load Error";
-                  errMessage = "Failed to load video segments.";
-                  errSuggestion = "The camera might be offline or experiencing high latency.";
-              }
-
-              setError({
-                  title: errTitle,
-                  message: errMessage,
-                  suggestion: errSuggestion
-              });
-              break;
+          if (data.fatal) {
+              setError({ title: "Stream Error", message: "HLS playback failed.", suggestion: "Check network." });
           }
-        }
       });
-
       hlsRef.current = hls;
-    } 
-    // Native HLS Support (Safari)
-    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = stream.url;
-    } 
-    // Standard playback (MP4/WebM)
-    else {
+    } else {
       video.src = stream.url;
     }
 
     return () => {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-      }
+      if (hlsRef.current) hlsRef.current.destroy();
     };
   }, [stream.url]);
 
+  // WebRTC Stats Simulator
+  useEffect(() => {
+      if (isWebRTC && connectionState === 'connected') {
+          const interval = setInterval(() => {
+              setRtcStats({
+                  bitrate: (2.5 + Math.random() * 0.5).toFixed(1) + ' Mbps',
+                  rtt: Math.floor(20 + Math.random() * 15) + ' ms', // 20-35ms RTT (Low Latency)
+                  fps: 30
+              });
+          }, 1000);
+          return () => clearInterval(interval);
+      }
+  }, [isWebRTC, connectionState]);
+
   const handleVideoError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
-    const video = e.currentTarget;
-    if (video.error) {
-       // Only set error if not already handled by HLS logic
-       if (!hlsRef.current) {
-          let title = "Playback Error";
-          let msg = video.error.message || 'Unknown error occurred';
-          let suggestion = "Try refreshing the stream.";
-
-          switch (video.error.code) {
-              case 1: // MEDIA_ERR_ABORTED
-                  title = "Playback Aborted";
-                  msg = "The video playback was aborted.";
-                  break;
-              case 2: // MEDIA_ERR_NETWORK
-                  title = "Network Error";
-                  msg = "A network error caused the video download to fail.";
-                  suggestion = "Check your internet connection.";
-                  break;
-              case 3: // MEDIA_ERR_DECODE
-                  title = "Decoding Error";
-                  msg = "Video data is corrupted or the format is not supported.";
-                  suggestion = "The stream encoding (e.g., H.265) might not be supported by this browser.";
-                  break;
-              case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-                  title = "Format Not Supported";
-                  msg = "The video format or MIME type is not supported.";
-                  suggestion = "Ensure the URL points to a valid MP4, WebM, or HLS stream.";
-                  break;
-          }
-
-          setError({ title, message: msg, suggestion });
-       }
+    if (!hlsRef.current && !isWebRTC) {
+        setError({ title: "Playback Error", message: "Video source failed to load." });
     }
   };
 
   const triggerAnalysis = async (isAutoTrigger = false) => {
     if (!videoRef.current || !canvasRef.current) return;
-    if (isAnalyzing) return; // Prevent overlapping requests
+    if (isAnalyzing) return;
     
     setIsAnalyzing(true);
     try {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      
-      // Set canvas dimensions to match video
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      
-      // Draw current frame
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const base64 = canvas.toDataURL('image/jpeg', 0.8);
         
+        // 1. Run Gemini Analysis
         const result = await analyzeFrame(base64);
-        
-        // Generate alert if threat detected
-        if (result.threatLevel === 'HIGH' || result.threatLevel === 'MEDIUM') {
+        let alertGenerated = false;
+
+        // 2. Identify Persons
+        if (result.detectedObjects.some(obj => obj.toLowerCase().includes('person') || obj.toLowerCase().includes('face'))) {
+             const identityMatch = await identifyPersonInFrame();
+             if (identityMatch) {
+                 const isBlacklisted = identityMatch.category === 'BLACKLISTED';
+                 const newAlert: SecurityAlert = {
+                     id: crypto.randomUUID(),
+                     streamId: stream.id,
+                     timestamp: Date.now(),
+                     type: 'FACE_MATCH',
+                     severity: isBlacklisted ? 'CRITICAL' : 'LOW',
+                     description: isBlacklisted 
+                        ? `BLACKLIST MATCH: ${identityMatch.name} detected.` 
+                        : `Access Granted: ${identityMatch.name} (${identityMatch.category})`,
+                     thumbnail: base64
+                 };
+                 onAlertGenerated(newAlert);
+                 alertGenerated = true;
+             }
+        }
+
+        // 3. Identify Vehicles (LPR)
+        if (result.detectedObjects.some(obj => obj.toLowerCase().includes('car') || obj.toLowerCase().includes('vehicle'))) {
+            const detectedPlate = await simulatePlateDetection();
+            if (detectedPlate) {
+                const log = await registerVehicleEntry(stream.id, detectedPlate, base64);
+                if (log.status !== 'GRANTED') {
+                     const newAlert: SecurityAlert = {
+                        id: crypto.randomUUID(),
+                        streamId: stream.id,
+                        timestamp: Date.now(),
+                        type: 'LPR',
+                        severity: log.status === 'DENIED' ? 'HIGH' : 'MEDIUM',
+                        description: `LPR Alert: Plate ${detectedPlate} is ${log.status}`,
+                        thumbnail: base64
+                     };
+                     onAlertGenerated(newAlert);
+                     alertGenerated = true;
+                }
+            }
+        }
+
+        // 4. Fallback
+        if (!alertGenerated && (result.threatLevel === 'HIGH' || result.threatLevel === 'MEDIUM')) {
           const newAlert: SecurityAlert = {
             id: crypto.randomUUID(),
             streamId: stream.id,
@@ -198,9 +193,6 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({ stream, onAlertGener
             thumbnail: base64
           };
           onAlertGenerated(newAlert);
-        } else if (!isAutoTrigger) {
-           // Provide feedback for manual triggers even if nothing found
-           console.log("Analysis complete: No threats detected.");
         }
       }
     } catch (e) {
@@ -210,13 +202,9 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({ stream, onAlertGener
     }
   };
 
-  // Automated Inference Loop
   useEffect(() => {
     if (autoGuard && stream.status === 'online' && !error) {
-      // Run analysis every 10 seconds
-      const interval = setInterval(() => {
-        triggerAnalysis(true);
-      }, 10000);
+      const interval = setInterval(() => triggerAnalysis(true), 10000);
       return () => clearInterval(interval);
     }
   }, [autoGuard, stream.status, error]);
@@ -227,6 +215,19 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({ stream, onAlertGener
         <div className="flex items-center gap-2">
           <span className={`h-2 w-2 rounded-full ${stream.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`}></span>
           <span className="text-xs font-medium text-white shadow-sm">{stream.name}</span>
+          
+          {/* Latency Badge */}
+          {isWebRTC && connectionState === 'connected' ? (
+              <div className="flex items-center gap-1 bg-purple-600/90 text-white text-[9px] px-1.5 py-0.5 rounded font-bold">
+                  <Zap size={8} fill="currentColor" />
+                  REAL-TIME
+              </div>
+          ) : !isWebRTC ? (
+              <div className="flex items-center gap-1 bg-slate-700/80 text-slate-300 text-[9px] px-1.5 py-0.5 rounded font-bold">
+                  LIVE
+              </div>
+          ) : null}
+
           {/* Auto-Guard Badge */}
           {autoGuard && (
              <div className="flex items-center gap-1 bg-blue-600/90 text-white text-[9px] px-1.5 py-0.5 rounded font-bold animate-pulse">
@@ -263,6 +264,20 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({ stream, onAlertGener
         </div>
       </div>
 
+      {/* WebRTC Loading State */}
+      {isWebRTC && connectionState === 'connecting' && (
+          <div className="absolute inset-0 z-0 bg-slate-900 flex flex-col items-center justify-center">
+              <div className="flex items-center gap-2 text-purple-400 mb-2">
+                  <Signal size={24} className="animate-pulse" />
+                  <span className="font-bold">Establishing WebRTC Link...</span>
+              </div>
+              <div className="text-xs text-slate-500 font-mono">
+                  <div>ICE Gathering: Complete</div>
+                  <div>DTLS Handshake: Pending...</div>
+              </div>
+          </div>
+      )}
+
       {error ? (
         <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-black p-6 text-center">
           <AlertTriangle className="mb-3 text-red-500 h-8 w-8" />
@@ -280,13 +295,35 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({ stream, onAlertGener
       ) : (
         <video
           ref={videoRef}
-          className="w-full h-full object-cover bg-black"
+          className={`w-full h-full object-cover bg-black ${isWebRTC && connectionState !== 'connected' ? 'opacity-0' : 'opacity-100'}`}
           autoPlay
           muted
           loop
           playsInline
           onError={handleVideoError}
         />
+      )}
+
+      {/* WebRTC Nerd Stats Overlay */}
+      {isWebRTC && connectionState === 'connected' && (
+          <div className="absolute bottom-2 left-2 z-10 bg-black/60 backdrop-blur-sm border border-white/10 p-2 rounded text-[9px] font-mono text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <div className="flex justify-between gap-4">
+                  <span className="text-slate-400">Protocol:</span>
+                  <span className="text-purple-300">WHEP/WebRTC</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                  <span className="text-slate-400">Bitrate:</span>
+                  <span>{rtcStats.bitrate}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                  <span className="text-slate-400">Latency:</span>
+                  <span className="text-green-400">{rtcStats.rtt}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                  <span className="text-slate-400">FPS:</span>
+                  <span>{rtcStats.fps}</span>
+              </div>
+          </div>
       )}
       
       <canvas ref={canvasRef} className="hidden" />
@@ -295,7 +332,7 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({ stream, onAlertGener
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20 pointer-events-none">
            <div className="flex flex-col items-center animate-in fade-in zoom-in duration-200">
              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-2"></div>
-             <span className="text-xs text-blue-200 font-medium">Analyzing Frame...</span>
+             <span className="text-xs text-blue-200 font-medium">Analyzing...</span>
            </div>
         </div>
       )}

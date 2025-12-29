@@ -2,7 +2,7 @@ import React, { useState, useEffect, PropsWithChildren } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { User, UserRole } from '../types';
 import { STORAGE_KEYS } from '../constants';
-import { LayoutDashboard, Shield, FileText, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Shield, FileText, LogOut, Menu, X, Search, Users, Car, Map, Lock, Smartphone, TrendingUp } from 'lucide-react';
 
 interface SidebarItemProps {
   icon: React.ElementType;
@@ -78,9 +78,23 @@ export const Layout = ({ children }: PropsWithChildren<{}>) => {
         
         <nav className="flex-1 p-4 overflow-y-auto">
           <SidebarItem icon={LayoutDashboard} label="Live Monitor" to="/" active={location.pathname === '/'} />
+          <SidebarItem icon={Map} label="Map View" to="/map" active={location.pathname === '/map'} />
+          <SidebarItem icon={Users} label="Identity Management" to="/identities" active={location.pathname === '/identities'} />
+          <SidebarItem icon={Car} label="Vehicle Access" to="/access-control" active={location.pathname === '/access-control'} />
+          <SidebarItem icon={Search} label="AI Archive Search" to="/search" active={location.pathname === '/search'} />
+          
+          <div className="my-2 border-t border-slate-800/50"></div>
+          
+          <SidebarItem icon={TrendingUp} label="Analytics" to="/analytics" active={location.pathname === '/analytics'} />
+          
           {user?.role === UserRole.ADMIN && (
-             <SidebarItem icon={Shield} label="Admin Console" to="/admin" active={location.pathname === '/admin'} />
+             <>
+                 <SidebarItem icon={Lock} label="Audit Logs" to="/audit-logs" active={location.pathname === '/audit-logs'} />
+                 <SidebarItem icon={Shield} label="Admin Console" to="/admin" active={location.pathname === '/admin'} />
+             </>
           )}
+
+          <SidebarItem icon={Smartphone} label="Mobile App" to="/mobile" active={location.pathname === '/mobile'} />
           <SidebarItem icon={FileText} label="Documents" to="/documents" active={location.pathname === '/documents'} />
         </nav>
 

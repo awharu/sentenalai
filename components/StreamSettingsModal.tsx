@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { CameraStream } from '../types';
 import { Button } from './Button';
 import { startTranscodingSession } from '../services/transcodingService';
-import { X, MapPin, Link as LinkIcon, Video, Trash2, Plus, Server, RefreshCw } from 'lucide-react';
+import { logAction } from '../services/auditService';
+import { X, MapPin, Link as LinkIcon, Video, Trash2, Plus, Server, RefreshCw, Zap, Clock } from 'lucide-react';
 
 interface StreamSettingsModalProps {
   isOpen: boolean;
@@ -31,7 +32,8 @@ export const StreamSettingsModal: React.FC<StreamSettingsModalProps> = ({
         name: stream.name,
         location: stream.location,
         url: stream.url,
-        rtspUrl: stream.rtspUrl
+        rtspUrl: stream.rtspUrl,
+        latencyMode: stream.latencyMode || 'STANDARD'
       });
       // Prefer showing the RTSP source if it exists, otherwise the HTTP URL
       setSourceUrl(stream.rtspUrl || stream.url || '');
@@ -49,22 +51,29 @@ export const StreamSettingsModal: React.FC<StreamSettingsModalProps> = ({
     try {
         let finalPlaybackUrl = sourceUrl;
         let finalRtspUrl = undefined;
+        const mode = formData.latencyMode || 'STANDARD';
 
         if (isRtsp) {
             // Logic: User provided an RTSP URL, we need to "provision" it via the backend
             finalRtspUrl = sourceUrl;
             // Call the mock backend service
-            finalPlaybackUrl = await startTranscodingSession(sourceUrl);
+            finalPlaybackUrl = await startTranscodingSession(sourceUrl, mode);
         }
 
-        onSave({ 
+        const updatedStream = { 
             ...stream, 
             ...formData, 
             url: finalPlaybackUrl,
             rtspUrl: finalRtspUrl,
             // If it was a new stream, ensure status is online after provisioning
             status: 'online'
-        } as CameraStream);
+        } as CameraStream;
+
+        onSave(updatedStream);
+        
+        // Audit Log
+        const actionType = isNew ? 'CREATE_STREAM' : 'UPDATE_STREAM';
+        await logAction(actionType, `Stream: ${updatedStream.name}`, `Source: ${isRtsp ? 'RTSP' : 'Direct URL'}, Mode: ${mode}`);
         
         onClose();
     } catch (error) {
@@ -75,9 +84,10 @@ export const StreamSettingsModal: React.FC<StreamSettingsModalProps> = ({
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirm("Are you sure you want to delete this camera stream? This action cannot be undone.")) {
       onDelete(stream.id);
+      await logAction('DELETE_STREAM', `Stream: ${stream.name}`, `ID: ${stream.id} removed from tenant.`);
     }
   };
 
@@ -151,7 +161,7 @@ export const StreamSettingsModal: React.FC<StreamSettingsModalProps> = ({
             {isRtsp ? (
                 <div className="mt-2 flex items-center gap-2 text-[10px] text-purple-400 bg-purple-900/20 p-2 rounded border border-purple-500/20">
                     <RefreshCw size={12} className="animate-spin-slow" />
-                    <span>RTSP detected. Backend transcoder will be provisioned automatically.</span>
+                    <span>RTSP detected. Backend transcoder will be provisioned.</span>
                 </div>
             ) : (
                 <p className="text-[10px] text-slate-500 mt-1">
@@ -159,6 +169,34 @@ export const StreamSettingsModal: React.FC<StreamSettingsModalProps> = ({
                 </p>
             )}
           </div>
+
+          {isRtsp && (
+              <div>
+                  <label className="block text-xs font-medium text-slate-400 uppercase mb-2">Latency Mode</label>
+                  <div className="grid grid-cols-2 gap-3">
+                      <div 
+                        onClick={() => setFormData(prev => ({...prev, latencyMode: 'STANDARD'}))}
+                        className={`cursor-pointer rounded-lg border p-3 flex flex-col items-center justify-center text-center gap-2 transition-all ${formData.latencyMode === 'STANDARD' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'}`}
+                      >
+                          <Clock size={20} />
+                          <div>
+                              <div className="text-xs font-bold">Standard (HLS)</div>
+                              <div className="text-[10px] opacity-70">10-15s Latency</div>
+                          </div>
+                      </div>
+                      <div 
+                        onClick={() => setFormData(prev => ({...prev, latencyMode: 'LOW_LATENCY'}))}
+                        className={`cursor-pointer rounded-lg border p-3 flex flex-col items-center justify-center text-center gap-2 transition-all ${formData.latencyMode === 'LOW_LATENCY' ? 'bg-purple-600/20 border-purple-500 text-purple-400' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'}`}
+                      >
+                          <Zap size={20} />
+                          <div>
+                              <div className="text-xs font-bold">Ultra Low (WebRTC)</div>
+                              <div className="text-[10px] opacity-70">{"< 500ms Latency"}</div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          )}
 
           <div className="flex items-center gap-3 pt-6 mt-2 border-t border-slate-800">
             {!isNew && (

@@ -31,8 +31,8 @@
 
 ## Streams & Transcoding
 
-### 2. Provision Transcoder (RTSP Ingest)
-*Initiates a background job to connect to an RTSP source and begin HLS transcoding.*
+### 2. Provision Transcoder
+*Initiates a background job to connect to an RTSP source and begin transcoding.*
 
 `POST /streams/provision`
 
@@ -40,6 +40,7 @@
 ```json
 {
   "rtspUrl": "rtsp://admin:1234@192.168.1.50:554/h264",
+  "latencyMode": "LOW_LATENCY", // Optional: "STANDARD" (HLS) or "LOW_LATENCY" (WebRTC)
   "persistent": true
 }
 ```
@@ -49,7 +50,7 @@
 {
   "streamId": "str_888",
   "status": "provisioning",
-  "playbackUrl": "https://stream.sentinel.ai/live/str_888/index.m3u8",
+  "playbackUrl": "http://stream.sentinel.ai/stream/whep",
   "estimatedReadyTimeMs": 2500
 }
 ```
@@ -65,7 +66,7 @@
     "name": "Main Lobby",
     "status": "online",
     "url": "https://stream.sentinel.ai/hls/str_555/index.m3u8",
-    "rtspSource": "rtsp://...",
+    "latencyMode": "STANDARD",
     "location": "Building A"
   }
 ]
