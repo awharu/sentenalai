@@ -1,0 +1,112 @@
+import React, { useState } from 'react';
+import { Shield, Lock, User as UserIcon } from 'lucide-react';
+import { Button } from '../components/Button';
+import { STORAGE_KEYS } from '../constants';
+import { User, UserRole } from '../types';
+
+export default function Login() {
+  const [email, setEmail] = useState('admin@sentinel.ai');
+  const [password, setPassword] = useState('securepassword');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    // Functional Auth Logic:
+    // In a real scenario, this fetches to a self-hosted API.
+    // Here we simulate the secure handshake to allow the app to function.
+    try {
+        await new Promise(resolve => setTimeout(resolve, 800)); // Network latency simulation
+        
+        const mockUser: User = {
+            id: crypto.randomUUID(),
+            email: email,
+            role: email.includes('admin') ? UserRole.ADMIN : UserRole.OPERATOR,
+            tenantId: 'tenant-alpha-001',
+            token: 'secure-jwt-' + crypto.randomUUID()
+        };
+
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(mockUser));
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, mockUser.token);
+        
+        window.location.hash = '/';
+    } catch (error) {
+        console.error("Auth failed");
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-950 relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-blue-900/10 blur-[100px]"></div>
+        <div className="absolute bottom-[10%] right-[10%] w-[30%] h-[30%] rounded-full bg-indigo-900/10 blur-[100px]"></div>
+      </div>
+
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl relative z-10">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
+            <Shield size={24} className="text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-white">SentinelAI</h1>
+          <p className="text-slate-400 text-sm mt-1">Secure VMS Login</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-400 uppercase mb-1">Email Address</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <UserIcon size={18} className="text-slate-500" />
+              </div>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="operator@company.com"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-400 uppercase mb-1">Password</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Lock size={18} className="text-slate-500" />
+              </div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-2">
+             <div className="flex items-center">
+               <input id="remember" type="checkbox" className="h-4 w-4 bg-slate-800 border-slate-700 rounded text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900" />
+               <label htmlFor="remember" className="ml-2 text-sm text-slate-400">Remember me</label>
+             </div>
+             <a href="#" className="text-sm text-blue-500 hover:text-blue-400">Forgot password?</a>
+          </div>
+
+          <Button type="submit" className="w-full mt-6 py-3" isLoading={isLoading}>
+            Authenticate
+          </Button>
+        </form>
+        
+        <p className="mt-6 text-center text-xs text-slate-500">
+          Authorized Personnel Only. All activity is logged.
+        </p>
+      </div>
+    </div>
+  );
+}

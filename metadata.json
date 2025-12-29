@@ -1,0 +1,8 @@
+{
+  "name": "SentinelAI VMS",
+  "description": "Multi-tenant SaaS Video Management System with AI-powered security monitoring, LPR, and facial recognition capabilities.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
