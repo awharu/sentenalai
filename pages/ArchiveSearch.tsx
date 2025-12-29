@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Search, Clock, Filter, PlayCircle, Calendar } from 'lucide-react';
 import { Button } from '../components/Button';
+import { PageHeader } from '../components/PageHeader';
+import { Badge } from '../components/Badge';
+import { Card } from '../components/Card';
 import { ArchiveEvent } from '../types';
 import { searchArchive } from '../services/searchService';
 
@@ -28,19 +31,19 @@ export default function ArchiveSearch() {
 
   return (
     <div className="h-full flex flex-col space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Search className="text-blue-500" />
-          Smart Archive Search
-        </h1>
-        <p className="text-slate-400 text-sm">
-          Use natural language to find specific events across your entire video retention history.
-          <span className="ml-2 text-[10px] uppercase bg-purple-900/50 text-purple-300 px-2 py-0.5 rounded border border-purple-800">Beta</span>
-        </p>
-      </div>
+      <PageHeader 
+        title="Smart Archive Search"
+        description={
+            <span className="flex items-center gap-2">
+                Use natural language to find specific events across your entire video retention history.
+                <Badge variant="purple">Beta</Badge>
+            </span>
+        }
+        icon={Search}
+      />
 
       {/* Search Input Area */}
-      <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 shadow-xl">
+      <Card className="shadow-xl">
         <form onSubmit={handleSearch} className="space-y-4">
           <div className="relative">
              <input 
@@ -70,7 +73,7 @@ export default function ArchiveSearch() {
              <span className="text-xs text-slate-600 pt-2">Powered by pgvector & Gemini Embeddings</span>
           </div>
         </form>
-      </div>
+      </Card>
 
       {/* Results Area */}
       <div className="flex-1 min-h-0 overflow-y-auto">
@@ -91,7 +94,7 @@ export default function ArchiveSearch() {
         {results.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
                 {results.map(evt => (
-                    <div key={evt.id} className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden group hover:border-blue-500/50 transition-all hover:shadow-lg hover:shadow-blue-900/10">
+                    <Card key={evt.id} noPadding className="group hover:border-blue-500/50 transition-all hover:shadow-lg hover:shadow-blue-900/10">
                         <div className="relative aspect-video bg-black">
                             <img src={evt.thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                             
@@ -123,7 +126,7 @@ export default function ArchiveSearch() {
                                 ))}
                             </div>
                         </div>
-                    </div>
+                    </Card>
                 ))}
             </div>
         )}

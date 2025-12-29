@@ -42,12 +42,19 @@ To become the global standard for AI-native Video Management Systems (VMS), tran
 - [x] **Mobile App:** Device pairing, MDM authorization, and App Store landing page.
 - [x] **WebRTC Streaming Engine:** Ultra-low latency playback (< 500ms) with WHEP support.
 
-## Phase 5: Predictive Security & Analytics (Q2 2025) - [IN PROGRESS]
+## Phase 5: Predictive Security & Analytics (Q2 2025) - [COMPLETED]
 **Focus:** Data-driven insights and forecasting.
 
 - [x] **Heatmaps:** Crowd density and dwelling time visualization on Geospatial maps.
 - [x] **Anomaly Detection:** Behavioral analysis to predict incidents before they happen (e.g., loitering patterns).
-- [x] **Reporting Suite:** Automated PDF reports for weekly security summaries.`,
+- [x] **Reporting Suite:** Automated PDF reports for weekly security summaries.
+
+## Phase 6: Autonomous Response & Voice Ops (Q3 2025) - [IN PROGRESS]
+**Focus:** Hands-free operation and autonomous dispatch.
+
+- [x] **Voice Command Interface:** Gemini Live integration for natural language control of the VMS ("Show me camera 1", "Navigate to Analytics").
+- [ ] **Smart Dispatch:** AI-suggested guard deployment based on incident severity.
+- [ ] **Drone Integration:** Automated patrol routes for DJI Enterprise drones via API.`,
 
   blueprint: `# SentinelAI Technical Blueprint v2.1
 

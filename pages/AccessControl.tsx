@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Car, Clock, Filter, Search, Plus, Trash2, ShieldCheck, ShieldAlert, AlertCircle } from 'lucide-react';
+import { Car, Clock, Plus, Trash2, ShieldCheck, ShieldAlert, AlertCircle } from 'lucide-react';
 import { Button } from '../components/Button';
+import { PageHeader } from '../components/PageHeader';
+import { Card } from '../components/Card';
+import { Badge } from '../components/Badge';
 import { VehicleAccessLog, PlateRecord } from '../types';
 import { getAccessLogs, getPlateDatabase, addPlateRecord, deletePlateRecord } from '../services/accessControlService';
 
@@ -13,7 +16,7 @@ export default function AccessControl() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 5000); // Poll for new logs
+    const interval = setInterval(loadData, 5000); 
     return () => clearInterval(interval);
   }, []);
 
@@ -49,16 +52,12 @@ export default function AccessControl() {
 
   return (
     <div className="h-full flex flex-col space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                <Car className="text-blue-500" />
-                Vehicle Access Control
-            </h1>
-            <p className="text-slate-400 text-sm">LPR Monitoring and Gate Security Logs.</p>
-        </div>
-        
-        <div className="bg-slate-900 p-1 rounded-lg border border-slate-800 flex">
+      <PageHeader 
+        title="Vehicle Access Control"
+        description="LPR Monitoring and Gate Security Logs."
+        icon={Car}
+        actions={
+          <div className="bg-slate-900 p-1 rounded-lg border border-slate-800 flex">
             <button 
                 onClick={() => setActiveTab('logs')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'logs' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
@@ -71,29 +70,30 @@ export default function AccessControl() {
             >
                 Plate Database
             </button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {activeTab === 'logs' && (
           <>
             {/* KPI Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+                <Card className="p-6">
                     <p className="text-slate-400 text-xs uppercase font-semibold mb-1">Vehicles Today</p>
                     <p className="text-3xl font-bold text-white">{logs.length + 42}</p>
-                </div>
-                <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+                </Card>
+                <Card className="p-6">
                     <p className="text-slate-400 text-xs uppercase font-semibold mb-1">Denied / Blocked</p>
                     <p className="text-3xl font-bold text-red-500">{logs.filter(l => l.status === 'DENIED').length}</p>
-                </div>
-                <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+                </Card>
+                <Card className="p-6">
                     <p className="text-slate-400 text-xs uppercase font-semibold mb-1">Avg Dwell Time</p>
                     <p className="text-3xl font-bold text-blue-500">4m 12s</p>
-                </div>
+                </Card>
             </div>
 
             {/* Logs Table */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex-1 flex flex-col min-h-0">
+            <Card noPadding className="flex-1 flex flex-col min-h-0">
                 <div className="p-4 border-b border-slate-800 flex items-center gap-2">
                     <Clock size={16} className="text-slate-500" />
                     <span className="text-sm font-semibold text-white">Recent Entries & Exits</span>
@@ -117,30 +117,20 @@ export default function AccessControl() {
                                         {new Date(log.timestamp).toLocaleTimeString()} <span className="text-slate-500 text-xs">{new Date(log.timestamp).toLocaleDateString()}</span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <div className="bg-white text-black font-mono font-bold px-2 py-0.5 rounded border-2 border-slate-300 text-sm shadow-sm">
-                                                {log.plateNumber}
-                                            </div>
+                                        <div className="bg-white text-black font-mono font-bold px-2 py-0.5 rounded border-2 border-slate-300 text-sm shadow-sm inline-block">
+                                            {log.plateNumber}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold inline-flex items-center gap-1 ${
-                                            log.status === 'GRANTED' ? 'bg-green-900/30 text-green-400 border border-green-900/50' : 
-                                            log.status === 'DENIED' ? 'bg-red-900/30 text-red-400 border border-red-900/50' :
-                                            'bg-orange-900/30 text-orange-400 border border-orange-900/50'
-                                        }`}>
-                                            {log.status === 'GRANTED' && <ShieldCheck size={12} />}
-                                            {log.status === 'DENIED' && <ShieldAlert size={12} />}
-                                            {log.status === 'FLAGGED' && <AlertCircle size={12} />}
+                                        <Badge 
+                                          variant={log.status === 'GRANTED' ? 'success' : log.status === 'DENIED' ? 'danger' : 'warning'}
+                                          icon={log.status === 'GRANTED' ? <ShieldCheck size={12} /> : log.status === 'DENIED' ? <ShieldAlert size={12} /> : <AlertCircle size={12} />}
+                                        >
                                             {log.status}
-                                        </span>
+                                        </Badge>
                                     </td>
-                                    <td className="px-6 py-4 text-slate-400 text-sm">
-                                        Camera #{log.streamId}
-                                    </td>
-                                    <td className="px-6 py-4 text-slate-400 text-sm">
-                                        {Math.round(log.confidence * 100)}%
-                                    </td>
+                                    <td className="px-6 py-4 text-slate-400 text-sm">Camera #{log.streamId}</td>
+                                    <td className="px-6 py-4 text-slate-400 text-sm">{Math.round(log.confidence * 100)}%</td>
                                     <td className="px-6 py-4 text-right">
                                         {log.thumbnailUrl && (
                                             <img src={log.thumbnailUrl} alt="Plate" className="h-8 w-14 object-cover rounded bg-black inline-block border border-slate-700 hover:scale-150 transition-transform origin-right" />
@@ -151,7 +141,7 @@ export default function AccessControl() {
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </Card>
           </>
       )}
 
@@ -163,7 +153,7 @@ export default function AccessControl() {
                    </Button>
                </div>
                
-               <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+               <Card noPadding>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
@@ -187,11 +177,9 @@ export default function AccessControl() {
                                         <td className="px-6 py-4 text-white font-medium">{plate.ownerName}</td>
                                         <td className="px-6 py-4 text-slate-400 text-sm">{plate.vehicleType}</td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                                plate.status === 'ALLOWED' ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'
-                                            }`}>
+                                            <Badge variant={plate.status === 'ALLOWED' ? 'success' : 'danger'}>
                                                 {plate.status}
-                                            </span>
+                                            </Badge>
                                         </td>
                                         <td className="px-6 py-4 text-slate-500 text-xs italic">{plate.notes || '-'}</td>
                                         <td className="px-6 py-4 text-right">
@@ -207,7 +195,7 @@ export default function AccessControl() {
                             </tbody>
                         </table>
                     </div>
-               </div>
+               </Card>
           </div>
       )}
 
@@ -231,6 +219,7 @@ export default function AccessControl() {
                             placeholder="ABC-1234"
                         />
                     </div>
+                    {/* ... other inputs simplified for brevity but functionally identical ... */}
                     <div>
                         <label className="block text-xs font-medium text-slate-400 uppercase mb-1">Owner Name</label>
                         <input 
@@ -251,7 +240,7 @@ export default function AccessControl() {
                             <option value="BLOCKED">Blocked (Deny Access)</option>
                         </select>
                     </div>
-                    <div>
+                     <div>
                         <label className="block text-xs font-medium text-slate-400 uppercase mb-1">Vehicle Type</label>
                         <input 
                             type="text" 

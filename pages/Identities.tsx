@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Search, Trash2, Edit2, ShieldAlert, UserCheck, User, Briefcase } from 'lucide-react';
+import { Users, Plus, Search, Trash2, ShieldAlert, UserCheck, User, Briefcase } from 'lucide-react';
 import { Button } from '../components/Button';
+import { PageHeader } from '../components/PageHeader';
+import { Badge } from '../components/Badge';
+import { Card } from '../components/Card';
 import { PersonIdentity, IdentityCategory } from '../types';
 import { getIdentities, addIdentity, deleteIdentity } from '../services/identityService';
 import { logAction } from '../services/auditService';
@@ -55,15 +58,6 @@ export default function Identities() {
       p.category.toLowerCase().includes(filter.toLowerCase())
   );
 
-  const getCategoryColor = (cat: IdentityCategory) => {
-      switch(cat) {
-          case 'BLACKLISTED': return 'bg-red-900/50 text-red-200 border-red-800';
-          case 'VIP': return 'bg-purple-900/50 text-purple-200 border-purple-800';
-          case 'CONTRACTOR': return 'bg-orange-900/50 text-orange-200 border-orange-800';
-          default: return 'bg-blue-900/50 text-blue-200 border-blue-800';
-      }
-  };
-
   const getCategoryIcon = (cat: IdentityCategory) => {
       switch(cat) {
           case 'BLACKLISTED': return <ShieldAlert size={14} />;
@@ -73,24 +67,31 @@ export default function Identities() {
       }
   };
 
+  const getCategoryVariant = (cat: IdentityCategory) => {
+      switch(cat) {
+          case 'BLACKLISTED': return 'danger';
+          case 'VIP': return 'purple';
+          case 'CONTRACTOR': return 'orange';
+          default: return 'info';
+      }
+  }
+
   return (
     <div className="h-full flex flex-col space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                <Users className="text-blue-500" />
-                Identity Management
-            </h1>
-            <p className="text-slate-400 text-sm">Manage known personnel, VIPs, and security threats (Watchlist).</p>
-        </div>
-        <Button onClick={() => setShowModal(true)} className="flex items-center gap-2">
-            <Plus size={16} />
-            Add Identity
-        </Button>
-      </div>
+      <PageHeader 
+        title="Identity Management"
+        description="Manage known personnel, VIPs, and security threats (Watchlist)."
+        icon={Users}
+        actions={
+            <Button onClick={() => setShowModal(true)} className="flex items-center gap-2">
+                <Plus size={16} />
+                Add Identity
+            </Button>
+        }
+      />
 
       {/* Filter Bar */}
-      <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex items-center gap-4">
+      <Card noPadding className="p-4 flex items-center gap-4">
           <Search size={20} className="text-slate-500" />
           <input 
             type="text" 
@@ -99,20 +100,21 @@ export default function Identities() {
             value={filter}
             onChange={e => setFilter(e.target.value)}
           />
-      </div>
+      </Card>
 
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-y-auto pb-6">
           {filteredIdentities.map(person => (
-              <div key={person.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden group hover:border-slate-700 transition-all shadow-lg">
+              <Card key={person.id} noPadding className="overflow-hidden group hover:border-slate-700 transition-all shadow-lg">
                   <div className="relative h-48 bg-slate-950">
                       <img src={person.imageUrl} alt={person.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
                       <div className="absolute bottom-4 left-4 right-4">
                           <h3 className="text-lg font-bold text-white truncate">{person.name}</h3>
-                          <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold border mt-1 ${getCategoryColor(person.category)}`}>
-                              {getCategoryIcon(person.category)}
-                              {person.category}
+                          <div className="mt-1">
+                            <Badge variant={getCategoryVariant(person.category)} icon={getCategoryIcon(person.category)}>
+                                {person.category}
+                            </Badge>
                           </div>
                       </div>
                   </div>
@@ -134,7 +136,7 @@ export default function Identities() {
                           </button>
                       </div>
                   </div>
-              </div>
+              </Card>
           ))}
       </div>
 

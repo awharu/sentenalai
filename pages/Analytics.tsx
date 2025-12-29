@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, AlertTriangle, FileText, Download, Activity, RefreshCw, Calendar, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { TrendingUp, FileText, Download, Activity, RefreshCw, Calendar, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { Button } from '../components/Button';
+import { PageHeader } from '../components/PageHeader';
+import { Card } from '../components/Card';
+import { Badge } from '../components/Badge';
 import { PredictiveInsight, SecurityReport } from '../types';
 import { getPredictiveInsights, getReports, generateReport } from '../services/analyticsService';
 
@@ -25,7 +28,6 @@ export default function Analytics() {
       const newRep = await generateReport('WEEKLY_SUMMARY');
       setReports(prev => [newRep, ...prev]);
       
-      // Simulate polling/completion
       setTimeout(() => {
           setReports(prev => prev.map(r => r.id === newRep.id ? {...r, status: 'READY', downloadUrl: '#'} : r));
           setIsGenerating(false);
@@ -48,19 +50,15 @@ export default function Analytics() {
 
   return (
     <div className="h-full flex flex-col space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <TrendingUp className="text-blue-500" />
-          Predictive Analytics
-        </h1>
-        <p className="text-slate-400 text-sm">
-           AI-driven behavioral analysis and future threat forecasting.
-        </p>
-      </div>
+      <PageHeader 
+        title="Predictive Analytics"
+        description="AI-driven behavioral analysis and future threat forecasting."
+        icon={TrendingUp}
+      />
 
       {/* Top Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+          <Card>
               <h3 className="text-sm text-slate-400 font-semibold uppercase mb-4">Overall Threat Forecast</h3>
               <div className="flex items-end gap-3">
                   <span className="text-4xl font-bold text-white">Low</span>
@@ -71,9 +69,9 @@ export default function Analytics() {
               <div className="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
                   <div className="h-full w-[25%] bg-green-500"></div>
               </div>
-          </div>
+          </Card>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+          <Card>
               <h3 className="text-sm text-slate-400 font-semibold uppercase mb-4">Projected Incidents (24h)</h3>
               <div className="flex items-end gap-3">
                   <span className="text-4xl font-bold text-white">3</span>
@@ -84,9 +82,9 @@ export default function Analytics() {
                <div className="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
                   <div className="h-full w-[60%] bg-orange-500"></div>
               </div>
-          </div>
+          </Card>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col justify-between">
+          <Card className="flex flex-col justify-between">
                <h3 className="text-sm text-slate-400 font-semibold uppercase">Quick Actions</h3>
                <div className="flex gap-2 mt-4">
                    <Button onClick={handleGenerateReport} isLoading={isGenerating} size="sm" className="flex-1">
@@ -96,20 +94,18 @@ export default function Analytics() {
                        Audit Rules
                    </Button>
                </div>
-          </div>
+          </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0 flex-1">
           {/* Predictive Insights List */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col">
+          <Card noPadding className="flex flex-col">
               <div className="p-4 border-b border-slate-800 flex justify-between items-center">
                   <h3 className="font-bold text-white flex items-center gap-2">
                       <Activity size={18} className="text-purple-500" />
                       Forecasted Risks
                   </h3>
-                  <span className="text-xs bg-purple-900/30 text-purple-300 px-2 py-1 rounded border border-purple-800">
-                      AI Confidence: 92%
-                  </span>
+                  <Badge variant="purple">AI Confidence: 92%</Badge>
               </div>
               <div className="p-4 space-y-4 overflow-y-auto flex-1">
                   {insights.map(insight => (
@@ -137,10 +133,10 @@ export default function Analytics() {
                       </div>
                   ))}
               </div>
-          </div>
+          </Card>
 
           {/* Reporting Section */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col">
+          <Card noPadding className="flex flex-col">
               <div className="p-4 border-b border-slate-800 flex justify-between items-center">
                   <h3 className="font-bold text-white flex items-center gap-2">
                       <FileText size={18} className="text-blue-500" />
@@ -187,7 +183,7 @@ export default function Analytics() {
                       </tbody>
                   </table>
               </div>
-          </div>
+          </Card>
       </div>
     </div>
   );

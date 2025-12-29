@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Lock, User as UserIcon, ArrowRight, Building2 } from 'lucide-react';
 import { Button } from '../components/Button';
-import { STORAGE_KEYS } from '../constants';
 import { User, UserRole, IdentityProvider } from '../types';
 import { logAction } from '../services/auditService';
 import { getIdPs, simulateSSOLogin } from '../services/ssoService';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
   const [email, setEmail] = useState('admin@sentinel.ai');
@@ -12,9 +14,12 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [ssoProviders, setSsoProviders] = useState<IdentityProvider[]>([]);
   const [isSsoLoading, setIsSsoLoading] = useState(false);
+  
+  const { login } = useAuth();
+  const { addToast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for configured IdPs to optionally show SSO button
     getIdPs().then(providers => {
         setSsoProviders(providers.filter(p => p.status === 'ACTIVE'));
     });
@@ -35,9 +40,9 @@ export default function Login() {
             token: 'secure-jwt-' + crypto.randomUUID()
         };
 
-        completeLogin(mockUser, 'Credentials');
+        await completeLogin(mockUser, 'Credentials');
     } catch (error) {
-        console.error("Auth failed");
+        addToast("Authentication failed. Please check credentials.", "error");
     } finally {
         setIsLoading(false);
     }
@@ -62,17 +67,17 @@ export default function Login() {
 
           await completeLogin(mockUser, `SSO (${ssoProviders[0].name})`);
       } catch (e) {
-          alert("SSO Failed");
+          addToast("SSO Authentication failed.", "error");
       } finally {
           setIsSsoLoading(false);
       }
   };
 
   const completeLogin = async (user: User, method: string) => {
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, user.token);
+      login(user);
       await logAction('LOGIN', 'Auth System', `User logged in via ${method}.`);
-      window.location.hash = '/';
+      addToast(`Welcome back, ${user.email}`, 'success');
+      navigate('/');
   };
 
   return (

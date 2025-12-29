@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Filter, Search, Download, ShieldCheck, Lock } from 'lucide-react';
 import { Button } from '../components/Button';
+import { PageHeader } from '../components/PageHeader';
+import { Card } from '../components/Card';
+import { Badge } from '../components/Badge';
 import { AuditLogEntry } from '../types';
 import { getAuditLogs, logAction } from '../services/auditService';
+import { useToast } from '../contexts/ToastContext';
 
 export default function AuditLog() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [filterAction, setFilterAction] = useState('');
   const [filterActor, setFilterActor] = useState('');
+  const { addToast } = useToast();
 
   useEffect(() => {
     loadLogs();
@@ -22,40 +27,26 @@ export default function AuditLog() {
   };
 
   const handleExport = async () => {
-      // Simulate CSV export
-      const headers = ['Timestamp', 'Actor', 'Action', 'Resource', 'Details', 'IP Address', 'Hash'];
-      const rows = logs.map(l => [
-          new Date(l.timestamp).toISOString(),
-          l.actorEmail,
-          l.action,
-          l.resource,
-          l.details,
-          l.ipAddress,
-          l.hash
-      ]);
-      
-      console.log("Exporting CSV...", [headers, ...rows]);
-      
       // Log the export action itself
       await logAction('EXPORT_DATA', 'Audit Log', 'User exported audit trail to CSV.');
-      alert("Audit Log exported successfully (Simulated).");
-      loadLogs(); // Refresh to see the export action
+      addToast("Audit Log exported to CSV.", "success");
+      loadLogs(); 
   };
 
   return (
     <div className="h-full flex flex-col space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <FileText className="text-blue-500" />
-          Audit Logs
-        </h1>
-        <p className="text-slate-400 text-sm flex items-center gap-2">
-           <Lock size={12} className="text-green-500" />
-           Immutable Chain of Custody for Compliance (SOC2 / HIPAA).
-        </p>
-      </div>
+      <PageHeader 
+        title="Audit Logs"
+        description={
+            <span className="flex items-center gap-2">
+                <Lock size={12} className="text-green-500" />
+                Immutable Chain of Custody for Compliance (SOC2 / HIPAA).
+            </span>
+        }
+        icon={FileText}
+      />
 
-      <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
+      <Card noPadding className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="flex gap-4 w-full md:w-auto">
              <div className="relative">
                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -89,9 +80,9 @@ export default function AuditLog() {
               <Download size={14} />
               Export CSV
           </Button>
-      </div>
+      </Card>
 
-      <div className="flex-1 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col min-h-0">
+      <Card noPadding className="flex-1 flex flex-col min-h-0">
           <div className="overflow-auto flex-1">
               <table className="w-full text-left">
                   <thead className="sticky top-0 bg-slate-900 z-10 border-b border-slate-800">
@@ -114,13 +105,12 @@ export default function AuditLog() {
                                   {log.actorEmail}
                               </td>
                               <td className="px-6 py-3">
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                      log.action.includes('DELETE') || log.action.includes('REMOVE') ? 'bg-red-900/30 text-red-400 border border-red-900/50' :
-                                      log.action === 'EXPORT_DATA' ? 'bg-purple-900/30 text-purple-400 border border-purple-900/50' :
-                                      'bg-blue-900/30 text-blue-400 border border-blue-900/50'
-                                  }`}>
+                                  <Badge variant={
+                                      log.action.includes('DELETE') || log.action.includes('REMOVE') ? 'danger' :
+                                      log.action === 'EXPORT_DATA' ? 'purple' : 'info'
+                                  }>
                                       {log.action.replace('_', ' ')}
-                                  </span>
+                                  </Badge>
                               </td>
                               <td className="px-6 py-3 text-slate-300">
                                   {log.resource}
@@ -141,7 +131,7 @@ export default function AuditLog() {
                   </tbody>
               </table>
           </div>
-      </div>
+      </Card>
     </div>
   );
 }

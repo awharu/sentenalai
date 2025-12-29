@@ -1,8 +1,9 @@
 import React, { useState, useEffect, PropsWithChildren } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { User, UserRole } from '../types';
-import { STORAGE_KEYS } from '../constants';
+import { UserRole } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import { LayoutDashboard, Shield, FileText, LogOut, Menu, X, Search, Users, Car, Map, Lock, Smartphone, TrendingUp } from 'lucide-react';
+import { VoiceCommandWidget } from './VoiceCommandWidget';
 
 interface SidebarItemProps {
   icon: React.ElementType;
@@ -26,19 +27,12 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, to, active
 export const Layout = ({ children }: PropsWithChildren<{}>) => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const userStr = localStorage.getItem(STORAGE_KEYS.USER);
-  const user: User | null = userStr ? JSON.parse(userStr) : null;
+  const { user, logout } = useAuth();
 
   // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location]);
-
-  const handleLogout = () => {
-    localStorage.removeItem(STORAGE_KEYS.USER);
-    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-    window.location.hash = '/login';
-  };
 
   return (
     <div className="flex h-screen w-full bg-slate-950 overflow-hidden">
@@ -107,7 +101,7 @@ export const Layout = ({ children }: PropsWithChildren<{}>) => {
               <p className="text-sm font-medium text-white truncate" title={user?.email}>{user?.email}</p>
               <p className="text-xs text-slate-500 truncate" title={user?.tenantId}>{user?.tenantId}</p>
             </div>
-            <button onClick={handleLogout} className="text-slate-500 hover:text-red-400 transition-colors p-1" title="Logout">
+            <button onClick={logout} className="text-slate-500 hover:text-red-400 transition-colors p-1" title="Logout">
               <LogOut size={18} />
             </button>
           </div>
@@ -134,6 +128,9 @@ export const Layout = ({ children }: PropsWithChildren<{}>) => {
         <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-950">
             {children}
         </div>
+
+        {/* Global Voice Widget */}
+        <VoiceCommandWidget />
       </main>
     </div>
   );

@@ -4,6 +4,7 @@ import { Button } from './Button';
 import { startTranscodingSession } from '../services/transcodingService';
 import { logAction } from '../services/auditService';
 import { X, MapPin, Link as LinkIcon, Video, Trash2, Plus, Server, RefreshCw, Zap, Clock } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 interface StreamSettingsModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const StreamSettingsModal: React.FC<StreamSettingsModalProps> = ({
   const [formData, setFormData] = useState<Partial<CameraStream>>({});
   const [sourceUrl, setSourceUrl] = useState('');
   const [isProvisioning, setIsProvisioning] = useState(false);
+  const { addToast } = useToast();
 
   useEffect(() => {
     if (stream) {
@@ -75,10 +77,11 @@ export const StreamSettingsModal: React.FC<StreamSettingsModalProps> = ({
         const actionType = isNew ? 'CREATE_STREAM' : 'UPDATE_STREAM';
         await logAction(actionType, `Stream: ${updatedStream.name}`, `Source: ${isRtsp ? 'RTSP' : 'Direct URL'}, Mode: ${mode}`);
         
+        addToast(`Stream ${isNew ? 'created' : 'updated'} successfully.`, 'success');
         onClose();
     } catch (error) {
         console.error("Failed to provision stream:", error);
-        alert("Failed to connect to RTSP source. Please check the URL and network.");
+        addToast("Failed to connect to stream source. Check URL.", "error");
     } finally {
         setIsProvisioning(false);
     }
@@ -88,6 +91,7 @@ export const StreamSettingsModal: React.FC<StreamSettingsModalProps> = ({
     if (confirm("Are you sure you want to delete this camera stream? This action cannot be undone.")) {
       onDelete(stream.id);
       await logAction('DELETE_STREAM', `Stream: ${stream.name}`, `ID: ${stream.id} removed from tenant.`);
+      addToast("Stream deleted.", "info");
     }
   };
 

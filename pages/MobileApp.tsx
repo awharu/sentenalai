@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Smartphone, QrCode, Download, Check, ShieldCheck, Trash2, Apple, MonitorSmartphone } from 'lucide-react';
+import { Smartphone, QrCode, ShieldCheck, Trash2, Apple, MonitorSmartphone } from 'lucide-react';
 import { Button } from '../components/Button';
+import { PageHeader } from '../components/PageHeader';
+import { Card } from '../components/Card';
 import { MobileDevice } from '../types';
 import { logAction } from '../services/auditService';
 
@@ -24,19 +26,15 @@ export default function MobileApp() {
 
   return (
     <div className="h-full flex flex-col space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Smartphone className="text-blue-500" />
-          Mobile Companion
-        </h1>
-        <p className="text-slate-400 text-sm">
-           Download the SentinelAI mobile app for field operations and manage authorized devices.
-        </p>
-      </div>
+      <PageHeader 
+        title="Mobile Companion"
+        description="Download the SentinelAI mobile app for field operations and manage authorized devices."
+        icon={Smartphone}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Download & Pair Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 flex flex-col items-center text-center">
+          <Card className="flex flex-col items-center text-center p-8">
               <div className="w-16 h-16 bg-blue-600/20 rounded-2xl flex items-center justify-center text-blue-500 mb-6">
                   <MonitorSmartphone size={32} />
               </div>
@@ -67,7 +65,6 @@ export default function MobileApp() {
                   {showQr ? (
                       <div className="flex flex-col items-center animate-in zoom-in duration-300">
                           <div className="bg-white p-4 rounded-xl shadow-lg mb-4">
-                              {/* Simulated QR Code */}
                               <div className="w-48 h-48 bg-white flex flex-wrap content-start">
                                   {Array.from({length: 64}).map((_, i) => (
                                       <div key={i} className={`w-6 h-6 ${Math.random() > 0.5 ? 'bg-black' : 'bg-white'}`}></div>
@@ -85,10 +82,10 @@ export default function MobileApp() {
                       </Button>
                   )}
               </div>
-          </div>
+          </Card>
 
           {/* Authorized Devices List */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col">
+          <Card noPadding className="flex flex-col">
               <div className="p-6 border-b border-slate-800">
                   <h3 className="font-bold text-white flex items-center gap-2">
                       <ShieldCheck size={18} className="text-green-500" />
@@ -124,7 +121,7 @@ export default function MobileApp() {
                       </div>
                   )}
               </div>
-          </div>
+          </Card>
       </div>
     </div>
   );

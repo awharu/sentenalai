@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Map as MapIcon, ZoomIn, ZoomOut, Layers, Video, X, Maximize2, Thermometer } from 'lucide-react';
+import { PageHeader } from '../components/PageHeader';
 import { MapZone, CameraStream, SecurityAlert, HeatmapPoint } from '../types';
 import { getZones, getStreamsByZone } from '../services/mapService';
 import { getHeatmapData } from '../services/analyticsService';
@@ -48,13 +49,11 @@ export default function Geospatial() {
 
       // Draw points
       heatmapData.forEach(point => {
-          // Convert percentage to pixels
           const x = (point.x / 100) * canvas.width;
           const y = (point.y / 100) * canvas.height;
           const radius = 60; 
 
           const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-          // Heatmap colors: Red -> Yellow -> Transparent
           gradient.addColorStop(0, `rgba(255, 0, 0, ${point.intensity * 0.6})`);
           gradient.addColorStop(0.5, `rgba(255, 165, 0, ${point.intensity * 0.3})`);
           gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
@@ -65,7 +64,7 @@ export default function Geospatial() {
           ctx.fill();
       });
 
-  }, [heatmapData, showHeatmap, zoomLevel]); // Re-draw doesn't strictly depend on zoomLevel since CSS scales canvas, but good to track.
+  }, [heatmapData, showHeatmap, zoomLevel]);
 
   const loadInitialData = async () => {
     const zonesData = await getZones();
@@ -87,24 +86,18 @@ export default function Geospatial() {
     setZoomLevel(prev => Math.min(Math.max(prev + delta, 1), 3));
   };
 
-  // Mock alert handler for the modal player
   const handleAlert = (alert: SecurityAlert) => {
     console.log("Alert from map view:", alert);
   };
 
   return (
     <div className="h-full flex flex-col space-y-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                <MapIcon className="text-blue-500" />
-                Geospatial View
-            </h1>
-            <p className="text-slate-400 text-sm">Interactive camera map and zone management.</p>
-        </div>
-        
-        <div className="flex gap-4">
-            {/* Heatmap Toggle */}
+      <PageHeader 
+        title="Geospatial View"
+        description="Interactive camera map and zone management."
+        icon={MapIcon}
+        actions={
+          <div className="flex gap-4">
             <button 
                 onClick={() => setShowHeatmap(!showHeatmap)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${showHeatmap ? 'bg-orange-900/50 border-orange-500 text-orange-200' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'}`}
@@ -113,7 +106,6 @@ export default function Geospatial() {
                 <span className="text-sm font-medium">Density Heatmap</span>
             </button>
 
-            {/* Zone Selector */}
             <div className="flex items-center gap-2 bg-slate-900 p-1.5 rounded-lg border border-slate-800">
                 <Layers size={16} className="text-slate-500 ml-2" />
                 <select 
@@ -130,7 +122,8 @@ export default function Geospatial() {
                 </select>
             </div>
         </div>
-      </div>
+        }
+      />
 
       {/* Map Container */}
       <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl overflow-hidden relative shadow-2xl group">

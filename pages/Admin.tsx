@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Tenant, PlanTier, IdentityProvider } from '../types';
 import { Button } from '../components/Button';
-import { Plus, Users, Server, Activity, Bell, Webhook, CheckCircle, Trash2, LayoutGrid, Shield, FileText, Lock, Globe, Edit2 } from 'lucide-react';
+import { PageHeader } from '../components/PageHeader';
+import { Card } from '../components/Card';
+import { Badge } from '../components/Badge';
+import { Plus, Users, Server, Activity, Bell, Webhook, CheckCircle, Trash2, LayoutGrid, Shield, FileText, Lock, Globe } from 'lucide-react';
 import { getIdPs, saveIdP, deleteIdP } from '../services/ssoService';
 import { logAction } from '../services/auditService';
 import { SSOConfigModal } from '../components/SSOConfigModal';
+import { useToast } from '../contexts/ToastContext';
 
 interface NotificationChannel {
     id: string;
@@ -21,6 +25,8 @@ export default function AdminPanel() {
   const [idps, setIdps] = useState<IdentityProvider[]>([]);
   const [showSSOModal, setShowSSOModal] = useState(false);
   const [editingIdP, setEditingIdP] = useState<Partial<IdentityProvider> | undefined>(undefined);
+
+  const { addToast } = useToast();
 
   // Mock Data for Tenants
   const [tenants, setTenants] = useState<Tenant[]>([
@@ -55,11 +61,13 @@ export default function AdminPanel() {
           setChannels([...channels, { ...newChannel, id: crypto.randomUUID() } as NotificationChannel]);
           setShowAddChannel(false);
           setNewChannel({ type: 'SLACK', active: true });
+          addToast("Notification channel added.", "success");
       }
   };
 
   const handleDeleteChannel = (id: string) => {
       setChannels(prev => prev.filter(c => c.id !== id));
+      addToast("Channel removed.", "info");
   };
 
   const toggleChannel = (id: string) => {
@@ -69,6 +77,7 @@ export default function AdminPanel() {
   const handleSaveIdP = async (idp: IdentityProvider) => {
       await saveIdP(idp);
       await logAction('CONFIG_SSO', `IdP: ${idp.name}`, `Type: ${idp.type}, Status: ${idp.status}`);
+      addToast("IdP Configuration Saved.", "success");
       loadIdPs();
   };
 
@@ -76,20 +85,18 @@ export default function AdminPanel() {
       if (confirm("Are you sure? This will prevent users from logging in via this provider.")) {
           await deleteIdP(id);
           await logAction('CONFIG_SSO', 'Deleted IdP', `ID: ${id}`);
+          addToast("Identity Provider deleted.", "warning");
           loadIdPs();
       }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-            <h1 className="text-2xl font-bold text-white">System Administration</h1>
-            <p className="text-slate-400 text-sm">Manage tenants, system health, and integrations.</p>
-        </div>
-        
-        {/* Tab Switcher */}
-        <div className="bg-slate-900 p-1 rounded-lg border border-slate-800 flex">
+      <PageHeader 
+        title="System Administration"
+        description="Manage tenants, system health, and integrations."
+        actions={
+            <div className="bg-slate-900 p-1 rounded-lg border border-slate-800 flex">
             <button 
                 onClick={() => setActiveTab('overview')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'overview' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
@@ -112,42 +119,37 @@ export default function AdminPanel() {
                 Compliance
             </button>
         </div>
-      </div>
+        }
+      />
 
       {activeTab === 'overview' && (
         <>
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
-                    <div className="flex items-center gap-4">
+                <Card className="flex items-center gap-4">
                         <div className="p-3 bg-blue-900/30 rounded-lg text-blue-400"><Users size={24} /></div>
                         <div>
                             <p className="text-slate-400 text-sm">Total Tenants</p>
                             <p className="text-2xl font-bold text-white">124</p>
                         </div>
-                    </div>
-                </div>
-                <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
-                    <div className="flex items-center gap-4">
+                </Card>
+                <Card className="flex items-center gap-4">
                         <div className="p-3 bg-green-900/30 rounded-lg text-green-400"><Server size={24} /></div>
                         <div>
                             <p className="text-slate-400 text-sm">Active Streams</p>
                             <p className="text-2xl font-bold text-white">842</p>
                         </div>
-                    </div>
-                </div>
-                <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
-                    <div className="flex items-center gap-4">
+                </Card>
+                <Card className="flex items-center gap-4">
                         <div className="p-3 bg-purple-900/30 rounded-lg text-purple-400"><Activity size={24} /></div>
                         <div>
                             <p className="text-slate-400 text-sm">AI Inferences (24h)</p>
                             <p className="text-2xl font-bold text-white">1.2M</p>
                         </div>
-                    </div>
-                </div>
+                </Card>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <Card noPadding>
                 <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
                     <h3 className="font-semibold text-white">Tenant Management</h3>
                     <Button size="sm" variant="outline" className="text-xs">
@@ -170,13 +172,9 @@ export default function AdminPanel() {
                                 <tr key={tenant.id} className="hover:bg-slate-800/30 transition-colors">
                                     <td className="px-6 py-4 text-white font-medium">{tenant.name}</td>
                                     <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                            tenant.plan === PlanTier.ENTERPRISE ? 'bg-purple-900 text-purple-200' : 
-                                            tenant.plan === PlanTier.PRO ? 'bg-blue-900 text-blue-200' :
-                                            'bg-slate-700 text-slate-300'
-                                        }`}>
+                                        <Badge variant={tenant.plan === PlanTier.ENTERPRISE ? 'purple' : tenant.plan === PlanTier.PRO ? 'info' : 'neutral'}>
                                             {tenant.plan}
-                                        </span>
+                                        </Badge>
                                     </td>
                                     <td className="px-6 py-4 text-slate-300">{tenant.maxStreams} allocated</td>
                                     <td className="px-6 py-4">
@@ -193,7 +191,7 @@ export default function AdminPanel() {
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </Card>
         </>
       )}
 
@@ -212,7 +210,7 @@ export default function AdminPanel() {
                   </div>
               </div>
 
-              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+              <Card noPadding>
                 <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
                     <h3 className="font-semibold text-white">Active Channels</h3>
                     <Button onClick={() => setShowAddChannel(true)} size="sm">
@@ -335,7 +333,7 @@ export default function AdminPanel() {
                         </tbody>
                     </table>
                 </div>
-              </div>
+              </Card>
           </div>
       )}
 
@@ -343,7 +341,7 @@ export default function AdminPanel() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
              <div className="space-y-6">
                  {/* SOC2 Card */}
-                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                 <Card>
                      <div className="flex items-center gap-3 mb-6">
                          <div className="p-2 bg-green-900/30 rounded-lg text-green-500">
                              <Shield size={24} />
@@ -363,7 +361,7 @@ export default function AdminPanel() {
                                      <p className="text-xs text-slate-500">AES-256 Volume Encryption</p>
                                  </div>
                              </div>
-                             <span className="text-xs font-bold text-green-400 bg-green-900/20 px-2 py-1 rounded border border-green-900/30">ACTIVE</span>
+                             <Badge variant="success">ACTIVE</Badge>
                          </div>
                          <div className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg border border-slate-800">
                              <div className="flex items-center gap-3">
@@ -373,7 +371,7 @@ export default function AdminPanel() {
                                      <p className="text-xs text-slate-500">TLS 1.3 / HTTPS Enforced</p>
                                  </div>
                              </div>
-                             <span className="text-xs font-bold text-green-400 bg-green-900/20 px-2 py-1 rounded border border-green-900/30">ACTIVE</span>
+                             <Badge variant="success">ACTIVE</Badge>
                          </div>
                          <div className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg border border-slate-800">
                              <div className="flex items-center gap-3">
@@ -383,7 +381,7 @@ export default function AdminPanel() {
                                      <p className="text-xs text-slate-500">Immutable Chain of Custody</p>
                                  </div>
                              </div>
-                             <span className="text-xs font-bold text-green-400 bg-green-900/20 px-2 py-1 rounded border border-green-900/30">ACTIVE</span>
+                             <Badge variant="success">ACTIVE</Badge>
                          </div>
                      </div>
                      
@@ -393,10 +391,10 @@ export default function AdminPanel() {
                              Generate Compliance Report (PDF)
                          </Button>
                      </div>
-                 </div>
+                 </Card>
 
                  {/* Retention Card */}
-                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                 <Card>
                     <h3 className="font-bold text-white mb-4">Data Retention Policy</h3>
                     <div className="space-y-4">
                         <div>
@@ -418,12 +416,12 @@ export default function AdminPanel() {
                              </div>
                         </div>
                     </div>
-                </div>
+                </Card>
              </div>
 
              <div className="space-y-6">
                 {/* Enterprise SSO Card */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col h-full">
+                <Card noPadding className="flex flex-col h-full">
                     <div className="p-6 border-b border-slate-800 flex justify-between items-start">
                         <div>
                             <h3 className="font-bold text-white mb-1">Enterprise SSO</h3>
@@ -459,9 +457,9 @@ export default function AdminPanel() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${idp.status === 'ACTIVE' ? 'bg-green-900/30 text-green-400' : 'bg-slate-700 text-slate-400'}`}>
+                                            <Badge variant={idp.status === 'ACTIVE' ? 'success' : 'neutral'}>
                                                 {idp.status}
-                                            </span>
+                                            </Badge>
                                             <button onClick={() => handleDeleteIdP(idp.id)} className="text-slate-500 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <Trash2 size={16} />
                                             </button>
@@ -471,7 +469,7 @@ export default function AdminPanel() {
                             </div>
                         )}
                     </div>
-                </div>
+                </Card>
              </div>
           </div>
       )}
