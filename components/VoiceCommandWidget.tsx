@@ -3,6 +3,7 @@ import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration } f
 import { Mic, MicOff, Zap, Activity, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SecurityAlert } from '../types';
+import { useDrones } from '../contexts/DroneStateContext';
 
 // Mock function to get stats for the AI
 const getSystemStats = () => {
@@ -39,11 +40,26 @@ const tools: FunctionDeclaration[] = [
             type: Type.OBJECT,
             properties: {},
         },
+    },
+    {
+        name: 'dispatch_drone',
+        description: 'Dispatch a drone to a specified zone for patrol.',
+        parameters: {
+            type: Type.OBJECT,
+            properties: {
+                zone_id: {
+                    type: Type.STRING,
+                    description: 'The zone to dispatch the drone to. Options: zone_a, zone_b.',
+                },
+            },
+            required: ['zone_id'],
+        },
     }
 ];
 
 export const VoiceCommandWidget: React.FC = () => {
     const navigate = useNavigate();
+    const { dispatchDrone } = useDrones();
     const [isActive, setIsActive] = useState(false);
     const [status, setStatus] = useState<'idle' | 'connecting' | 'listening' | 'speaking'>('idle');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -203,6 +219,13 @@ export const VoiceCommandWidget: React.FC = () => {
                                 } 
                                 else if (fc.name === 'get_system_status') {
                                     result = getSystemStats();
+                                }
+                                else if (fc.name === 'dispatch_drone') {
+                                    const zone = (fc.args as any).zone_id;
+                                    const drone = await dispatchDrone(zone);
+                                    result = drone
+                                        ? { success: true, message: `Drone ${drone.name} dispatched to ${zone}` }
+                                        : { success: false, message: `No drone available for ${zone}` };
                                 }
 
                                 functionResponses.push({

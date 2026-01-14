@@ -5,6 +5,7 @@ import { UserRole } from './types';
 // Contexts
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { DroneProvider } from './contexts/DroneStateContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Components
@@ -36,10 +37,11 @@ export default function App() {
     <ErrorBoundary>
       <AuthProvider>
         <ToastProvider>
-          <HashRouter>
-            <Suspense fallback={<FullPageLoader />}>
-              <Routes>
-                <Route path="/login" element={<Login />} />
+          <DroneProvider>
+            <HashRouter>
+              <Suspense fallback={<FullPageLoader />}>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
                 
                 <Route path="/" element={
                   <ProtectedRoute>
@@ -106,6 +108,7 @@ export default function App() {
               </Routes>
             </Suspense>
           </HashRouter>
+        </DroneProvider>
         </ToastProvider>
       </AuthProvider>
     </ErrorBoundary>

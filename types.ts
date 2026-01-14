@@ -186,3 +186,12 @@ export interface SecurityReport {
   status: 'READY' | 'GENERATING';
   downloadUrl?: string;
 }
+
+export type DroneStatus = 'standby' | 'enroute' | 'patrolling' | 'returning' | 'charging';
+export type Drone = {
+    id: string;
+    name: string;
+    status: DroneStatus;
+    zoneId: string;
+    battery: number; // Percentage
+};

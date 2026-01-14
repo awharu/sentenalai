@@ -5,6 +5,7 @@ import { MapZone, CameraStream, SecurityAlert, HeatmapPoint } from '../types';
 import { getZones, getStreamsByZone } from '../services/mapService';
 import { getHeatmapData } from '../services/analyticsService';
 import { StreamPlayer } from '../components/StreamPlayer';
+import { DroneOverlay } from '../components/DroneOverlay';
 
 export default function Geospatial() {
   const [zones, setZones] = useState<MapZone[]>([]);
@@ -155,6 +156,8 @@ export default function Geospatial() {
                         className="w-full h-full relative transition-transform duration-300 ease-out origin-center"
                         style={{ transform: `scale(${zoomLevel})` }}
                    >
+                       <DroneOverlay />
+
                        {/* Map Image */}
                        <div className="absolute inset-4 md:inset-12 border-2 border-slate-800/50 rounded-lg overflow-hidden bg-slate-900">
                            <img 
