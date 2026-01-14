@@ -156,7 +156,7 @@ export default function Geospatial() {
                         className="w-full h-full relative transition-transform duration-300 ease-out origin-center"
                         style={{ transform: `scale(${zoomLevel})` }}
                    >
-                       <DroneOverlay />
+                       <DroneOverlay activeZone={activeZone} />
 
                        {/* Map Image */}
                        <div className="absolute inset-4 md:inset-12 border-2 border-slate-800/50 rounded-lg overflow-hidden bg-slate-900">

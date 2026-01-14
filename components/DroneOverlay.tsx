@@ -1,10 +1,20 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useDrones } from '../contexts/DroneStateContext';
 import { MAP_ZONES } from '../services/mapService';
 import { Zap, BatteryCharging, CheckCircle, Send } from 'lucide-react';
+import { MapZone } from '../types';
 
-export const DroneOverlay: React.FC = () => {
+interface DroneOverlayProps {
+    activeZone: MapZone | null;
+}
+
+export const DroneOverlay: React.FC<DroneOverlayProps> = ({ activeZone }) => {
     const { drones } = useDrones();
+
+    const visibleDrones = useMemo(() => {
+        if (!activeZone) return [];
+        return drones.filter(d => d.zoneId === activeZone.id);
+    }, [drones, activeZone]);
 
     const getStatusIcon = (status: string) => {
         switch(status) {
@@ -33,9 +43,11 @@ export const DroneOverlay: React.FC = () => {
         }
     };
 
+    if (visibleDrones.length === 0) return null;
+
     return (
         <div className="absolute inset-0 z-20 pointer-events-none">
-            {drones.map(drone => (
+            {visibleDrones.map(drone => (
                 <div
                     key={drone.id}
                     className="absolute transform -translate-x-1/2 -translate-y-1/2 group/marker"
