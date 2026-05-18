@@ -1,8 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { CameraStream, SecurityAlert } from '../types';
 import { analyzeFrame } from '../services/geminiService';
-import { identifyPersonInFrame } from '../services/identityService';
-import { simulatePlateDetection, registerVehicleEntry } from '../services/accessControlService';
+import { matchIdentityInFrame } from '../services/identityService';
+import { processPlateDetection, registerVehicleEntry } from '../services/accessControlService';
 import { AlertTriangle, Eye, Settings, Activity, ShieldCheck, ShieldAlert, UserCheck, UserX, Car, Zap, Signal } from 'lucide-react';
 import Hls from 'hls.js';
 
@@ -135,13 +135,13 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({ stream, onAlertGener
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const base64 = canvas.toDataURL('image/jpeg', 0.8);
         
-        // 1. Run Gemini Analysis
+        // 1. Run Gemini Analysis via server proxy
         const result = await analyzeFrame(base64);
         let alertGenerated = false;
 
-        // 2. Identify Persons
+        // 2. Identity Resolution
         if (result.detectedObjects.some(obj => obj.toLowerCase().includes('person') || obj.toLowerCase().includes('face'))) {
-             const identityMatch = await identifyPersonInFrame();
+             const identityMatch = await matchIdentityInFrame(base64);
              if (identityMatch) {
                  const isBlacklisted = identityMatch.category === 'BLACKLISTED';
                  const newAlert: SecurityAlert = {
@@ -151,8 +151,8 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({ stream, onAlertGener
                      type: 'FACE_MATCH',
                      severity: isBlacklisted ? 'CRITICAL' : 'LOW',
                      description: isBlacklisted 
-                        ? `BLACKLIST MATCH: ${identityMatch.name} detected.` 
-                        : `Access Granted: ${identityMatch.name} (${identityMatch.category})`,
+                        ? `SECURITY MATCH: ${identityMatch.name} localized.` 
+                        : `Authorized: ${identityMatch.name} (${identityMatch.category})`,
                      thumbnail: base64
                  };
                  onAlertGenerated(newAlert);
@@ -160,28 +160,30 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({ stream, onAlertGener
              }
         }
 
-        // 3. Identify Vehicles (LPR)
-        if (result.detectedObjects.some(obj => obj.toLowerCase().includes('car') || obj.toLowerCase().includes('vehicle'))) {
-            const detectedPlate = await simulatePlateDetection();
-            if (detectedPlate) {
-                const log = await registerVehicleEntry(stream.id, detectedPlate, base64);
-                if (log.status !== 'GRANTED') {
-                     const newAlert: SecurityAlert = {
-                        id: crypto.randomUUID(),
-                        streamId: stream.id,
-                        timestamp: Date.now(),
-                        type: 'LPR',
-                        severity: log.status === 'DENIED' ? 'HIGH' : 'MEDIUM',
-                        description: `LPR Alert: Plate ${detectedPlate} is ${log.status}`,
-                        thumbnail: base64
-                     };
-                     onAlertGenerated(newAlert);
-                     alertGenerated = true;
+        // 3. License Plate Recognition (LPR)
+        if (result.licensePlates && result.licensePlates.length > 0) {
+            for (const plate of result.licensePlates) {
+                const detectedPlate = await processPlateDetection(plate);
+                if (detectedPlate) {
+                    const log = await registerVehicleEntry(stream.id, detectedPlate, base64);
+                    if (log.status !== 'GRANTED') {
+                         const newAlert: SecurityAlert = {
+                            id: crypto.randomUUID(),
+                            streamId: stream.id,
+                            timestamp: Date.now(),
+                            type: 'LPR',
+                            severity: log.status === 'DENIED' ? 'HIGH' : 'MEDIUM',
+                            description: `Vehicle Alert: Plate ${detectedPlate} identified as ${log.status}`,
+                            thumbnail: base64
+                         };
+                         onAlertGenerated(newAlert);
+                         alertGenerated = true;
+                    }
                 }
             }
         }
 
-        // 4. Fallback
+        // 4. Heuristic Threat Fallback
         if (!alertGenerated && (result.threatLevel === 'HIGH' || result.threatLevel === 'MEDIUM')) {
           const newAlert: SecurityAlert = {
             id: crypto.randomUUID(),
@@ -189,7 +191,7 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({ stream, onAlertGener
             timestamp: Date.now(),
             type: result.threatLevel === 'HIGH' ? 'UNAUTHORIZED' : 'VEHICLE',
             severity: result.threatLevel,
-            description: result.description || "AI Anomaly Detected",
+            description: result.description || "Anomaly detected by AI heuristics",
             thumbnail: base64
           };
           onAlertGenerated(newAlert);

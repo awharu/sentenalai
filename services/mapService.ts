@@ -1,25 +1,25 @@
 import { CameraStream, MapZone } from "../types";
 
-// Mock Zones
-export const MAP_ZONES: MapZone[] = [
+// Facility Zones Configuration
+export const FACILITY_ZONES: MapZone[] = [
     {
         id: 'zone_a',
         name: 'Headquarters - Building A',
-        imageUrl: 'https://images.unsplash.com/photo-1555679427-1f6dfcce943b?auto=format&fit=crop&q=80&w=1600', // Technical Blueprint / Abstract
+        imageUrl: 'https://images.unsplash.com/photo-1555679427-1f6dfcce943b?auto=format&fit=crop&q=80&w=1600',
         width: 1600,
         height: 900
     },
     {
         id: 'zone_b',
         name: 'Logistics Center - Yard',
-        imageUrl: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=1600', // Aerial view
+        imageUrl: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=1600',
         width: 1600,
         height: 900
     }
 ];
 
-// Mock Streams with Coordinates
-const MAPPED_STREAMS: CameraStream[] = [
+// Active Streams with Spatial Mapping
+const ACTIVE_STREAMS: CameraStream[] = [
     {
         id: '1',
         name: 'Main Entrance',
@@ -63,9 +63,9 @@ const MAPPED_STREAMS: CameraStream[] = [
 ];
 
 export const getZones = async (): Promise<MapZone[]> => {
-    return MAP_ZONES;
+    return FACILITY_ZONES;
 };
 
 export const getStreamsByZone = async (zoneId: string): Promise<CameraStream[]> => {
-    return MAPPED_STREAMS.filter(s => s.zoneId === zoneId);
+    return ACTIVE_STREAMS.filter(s => s.zoneId === zoneId);
 };

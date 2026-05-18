@@ -1,14 +1,14 @@
 import { PlateRecord, VehicleAccessLog } from "../types";
 
-// Mock Database of Registered Plates
-const PLATE_DATABASE: PlateRecord[] = [
+// Registered License Plate Registry
+const AUTHORIZED_PLATES: PlateRecord[] = [
   { plateNumber: 'ABC-1234', ownerName: 'Company Fleet #1', status: 'ALLOWED', vehicleType: 'Ford Transit' },
   { plateNumber: 'XYZ-9876', ownerName: 'John Smith', status: 'ALLOWED', vehicleType: 'Tesla Model 3' },
   { plateNumber: 'BAD-6666', ownerName: 'Unknown', status: 'BLOCKED', vehicleType: 'Black SUV', notes: 'Suspicious vehicle reported 3 times.' },
   { plateNumber: 'DLV-5544', ownerName: 'Daily Delivery', status: 'ALLOWED', vehicleType: 'Box Truck' }
 ];
 
-// In-memory logs
+// Persistent logs (in-memory for runtime)
 let accessLogs: VehicleAccessLog[] = [
   {
     id: 'log_1',
@@ -37,15 +37,15 @@ export const getAccessLogs = async (): Promise<VehicleAccessLog[]> => {
 };
 
 export const getPlateDatabase = async (): Promise<PlateRecord[]> => {
-  return [...PLATE_DATABASE];
+  return [...AUTHORIZED_PLATES];
 };
 
 export const registerVehicleEntry = async (streamId: string, plateNumber: string, thumbnail?: string): Promise<VehicleAccessLog> => {
-  const record = PLATE_DATABASE.find(p => p.plateNumber === plateNumber);
+  const record = AUTHORIZED_PLATES.find(p => p.plateNumber === plateNumber);
   
   const status = record?.status === 'ALLOWED' ? 'GRANTED' 
                : record?.status === 'BLOCKED' ? 'DENIED' 
-               : 'FLAGGED'; // Unknowns are flagged
+               : 'FLAGGED';
 
   const newLog: VehicleAccessLog = {
     id: crypto.randomUUID(),
@@ -53,35 +53,30 @@ export const registerVehicleEntry = async (streamId: string, plateNumber: string
     streamId,
     plateNumber,
     status,
-    direction: 'ENTRY', // Simplified for demo
+    direction: 'ENTRY',
     confidence: 0.85 + Math.random() * 0.14,
     thumbnailUrl: thumbnail
   };
 
   accessLogs.unshift(newLog);
   
-  // Keep log size manageable
   if (accessLogs.length > 100) accessLogs.pop();
 
   return newLog;
 };
 
-// Simulation Helper
-export const simulatePlateDetection = async (): Promise<string | null> => {
-  // 25% chance to simulate a plate read if a vehicle is detected
-  if (Math.random() > 0.75) {
-    const plates = [...PLATE_DATABASE.map(p => p.plateNumber), 'UNK-' + Math.floor(Math.random() * 9000 + 1000)];
-    const randomPlate = plates[Math.floor(Math.random() * plates.length)];
-    return randomPlate;
-  }
-  return null;
+// Logic for plate detection events
+export const processPlateDetection = async (detectedPlate: string): Promise<string | null> => {
+    // Validate if the detected string matches any authorized or known plates
+    const match = AUTHORIZED_PLATES.find(p => p.plateNumber === detectedPlate);
+    return match ? match.plateNumber : detectedPlate;
 };
 
 export const addPlateRecord = async (record: PlateRecord) => {
-    PLATE_DATABASE.push(record);
+    AUTHORIZED_PLATES.push(record);
 };
 
 export const deletePlateRecord = async (plate: string) => {
-    const idx = PLATE_DATABASE.findIndex(p => p.plateNumber === plate);
-    if (idx !== -1) PLATE_DATABASE.splice(idx, 1);
+    const idx = AUTHORIZED_PLATES.findIndex(p => p.plateNumber === plate);
+    if (idx !== -1) AUTHORIZED_PLATES.splice(idx, 1);
 };

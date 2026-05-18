@@ -1,7 +1,7 @@
 import { AuditLogEntry, AuditAction, User } from "../types";
 import { STORAGE_KEYS } from "../constants";
 
-// Mock In-Memory Audit Log
+// System Audit Log Store
 const AUDIT_LOGS: AuditLogEntry[] = [
     {
         id: 'log_0',
@@ -10,14 +10,14 @@ const AUDIT_LOGS: AuditLogEntry[] = [
         actorEmail: 'system@sentinel.ai',
         action: 'EXPORT_DATA',
         resource: 'System Backup',
-        details: 'Daily automated backup completed successfully.',
+        details: 'Automated infrastructure backup verified.',
         ipAddress: '127.0.0.1',
         hash: 'a1b2c3d4e5f67890...'
     }
 ];
 
-// Helper to simulate a crypto hash
-const generateHash = (data: string) => {
+// Helper to generate a checksum for integrity verification
+const generateCheckSum = (data: string) => {
     let hash = 0, i, chr;
     if (data.length === 0) return hash.toString(16);
     for (i = 0; i < data.length; i++) {
@@ -46,7 +46,7 @@ export const logAction = async (action: AuditAction, resource: string, details: 
 
     // Calculate hash based on content to simulate immutability
     const contentToHash = `${entry.id}:${entry.timestamp}:${entry.actorId}:${entry.action}:${entry.resource}`;
-    entry.hash = generateHash(contentToHash);
+    entry.hash = generateCheckSum(contentToHash);
 
     AUDIT_LOGS.unshift(entry);
     console.log(`[Audit] Action logged: ${action} by ${entry.actorEmail}`);

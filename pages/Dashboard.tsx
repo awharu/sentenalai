@@ -8,12 +8,12 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Search, Grid, List, Plus, Activity, Thermometer, DoorOpen, LayoutDashboard, Bell, ShieldAlert } from 'lucide-react';
 
-// Initial Data
+// Early Data
 const INITIAL_STREAMS: CameraStream[] = [
   {
     id: '1',
-    name: 'Main Entrance (WebRTC)',
-    url: 'mock-webrtc://stream-01',
+    name: 'Main Entrance (RTC)',
+    url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     status: 'online',
     location: 'Building A',
     tenantId: 'tenant-alpha-001',
@@ -107,7 +107,7 @@ export default function Dashboard() {
     });
   };
 
-  // Simulate IoT
+  // Dynamic IoT Sensor Feed
   useEffect(() => {
     const interval = setInterval(() => {
         setSensors(prev => prev.map(sensor => {

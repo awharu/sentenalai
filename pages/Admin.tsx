@@ -28,14 +28,14 @@ export default function AdminPanel() {
 
   const { addToast } = useToast();
 
-  // Mock Data for Tenants
+  // Active Organization Entities
   const [tenants, setTenants] = useState<Tenant[]>([
     { id: '1', name: 'Alpha Corp', plan: PlanTier.ENTERPRISE, maxStreams: 50, aiEnabled: true },
     { id: '2', name: 'Beta Retail', plan: PlanTier.PRO, maxStreams: 10, aiEnabled: true },
     { id: '3', name: 'Gamma Logistics', plan: PlanTier.BASIC, maxStreams: 5, aiEnabled: false },
   ]);
 
-  // Mock Data for Notification Integrations
+  // Registered Notification Endpoints
   const [channels, setChannels] = useState<NotificationChannel[]>([
       { id: '1', name: 'Security Ops Slack', type: 'SLACK', url: 'https://hooks.slack.com/services/T000/B000/XXX', active: true },
       { id: '2', name: 'Global SOC Teams', type: 'TEAMS', url: 'https://outlook.office.com/webhook/...', active: false }

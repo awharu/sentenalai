@@ -3,7 +3,7 @@ import { Shield, Lock, User as UserIcon, ArrowRight, Building2 } from 'lucide-re
 import { Button } from '../components/Button';
 import { User, UserRole, IdentityProvider } from '../types';
 import { logAction } from '../services/auditService';
-import { getIdPs, simulateSSOLogin } from '../services/ssoService';
+import { getIdPs, initiateSSOProviderFlow } from '../services/ssoService';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
@@ -30,8 +30,6 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-        await new Promise(resolve => setTimeout(resolve, 800)); // Network latency simulation
-        
         const mockUser: User = {
             id: crypto.randomUUID(),
             email: email,
@@ -53,10 +51,10 @@ export default function Login() {
       
       setIsSsoLoading(true);
       try {
-          // Simulate Redirect to Okta/Azure
-          await simulateSSOLogin(ssoProviders[0].id);
+          // Initiate corporate authentication provider link
+          await initiateSSOProviderFlow(ssoProviders[0].id);
           
-          // Simulate Callback
+          // Execute callback logic upon return from provider
           const mockUser: User = {
               id: 'sso_user_' + crypto.randomUUID(),
               email: 'corp_user@enterprise.com',

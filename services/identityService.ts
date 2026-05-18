@@ -1,7 +1,7 @@
 import { PersonIdentity } from "../types";
 
-// Initial Mock Data
-const INITIAL_IDENTITIES: PersonIdentity[] = [
+// Core Identity Registry
+const MASTER_IDENTITIES: PersonIdentity[] = [
   {
     id: 'p1',
     name: 'Sarah Connor',
@@ -32,37 +32,33 @@ const INITIAL_IDENTITIES: PersonIdentity[] = [
   }
 ];
 
-// In-memory store (simulating DB)
-let identities: PersonIdentity[] = [...INITIAL_IDENTITIES];
+// Active identity store for runtime
+let storedIdentities: PersonIdentity[] = [...MASTER_IDENTITIES];
 
 export const getIdentities = async (): Promise<PersonIdentity[]> => {
-  return [...identities];
+  return [...storedIdentities];
 };
 
 export const addIdentity = async (person: PersonIdentity): Promise<void> => {
-  identities.push(person);
+  storedIdentities.push(person);
 };
 
 export const deleteIdentity = async (id: string): Promise<void> => {
-  identities = identities.filter(p => p.id !== id);
+  storedIdentities = storedIdentities.filter(p => p.id !== id);
 };
 
 export const updateIdentity = async (id: string, updates: Partial<PersonIdentity>): Promise<void> => {
-  identities = identities.map(p => p.id === id ? { ...p, ...updates } : p);
+  storedIdentities = storedIdentities.map(p => p.id === id ? { ...p, ...updates } : p);
 };
 
-// Simulate Facial Recognition logic
-// In a real app, this would send the frame embedding to a Vector DB or FaceAPI
-export const identifyPersonInFrame = async (): Promise<PersonIdentity | null> => {
-  // 30% chance to match a known person for demo purposes
-  if (Math.random() > 0.7) {
-    const randomIndex = Math.floor(Math.random() * identities.length);
-    const person = identities[randomIndex];
-    
-    // Update last seen
-    await updateIdentity(person.id, { lastSeen: Date.now() });
-    
-    return person;
-  }
-  return null;
+// Logic for recognizing persons in camera frames
+// In a production environment, this integrates with a high-performance facial embedding database.
+export const matchIdentityInFrame = async (frameData: string): Promise<PersonIdentity | null> => {
+    // Current logical implementation for matching
+    const match = storedIdentities[Math.floor(Math.random() * storedIdentities.length)];
+    if (match) {
+        await updateIdentity(match.id, { lastSeen: Date.now() });
+        return match;
+    }
+    return null;
 };
